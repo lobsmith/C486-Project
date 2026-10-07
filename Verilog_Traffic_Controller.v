@@ -2,7 +2,9 @@
 
 `timescale 1ns / 1ps
 
-/********************************* 1. MODULE DECLARATION & I/O *********************************/
+/***********************************************************************************************************/
+/*************************************** 1. MODULE DECLARATION & I/O ***************************************/
+/***********************************************************************************************************/
 
 // port declaration: define inputs and outputs
 module traffic_controller(
@@ -27,7 +29,9 @@ module traffic_controller(
     output wire  purple_waiting              // purple waiting indicator
 );
 
+    /***********************************************************************************************************/
     /********************************* 2. FSM STATE DEFINITIONS & ARCHITECTURE *********************************/
+    /***********************************************************************************************************/
 
     // define unique binary encodings for each state; start state: ALL_RED_TO_BLUE
     parameter ALL_RED_TO_BLUE   = 3'b000;    // ALL_RED_TO_BLUE   = 0b000
@@ -41,14 +45,10 @@ module traffic_controller(
     reg [2:0] current_state;
     reg [2:0] next_state;
 
-    /********************************* 3. TIMING AND COUNTERS *********************************/
+    /***********************************************************************************************************/
+    /**************************************** 3. TRAFFIC LIGHT TIMING ******************************************/
+    /***********************************************************************************************************/
     
-    * Clock divider / timing base (DONE)
-    * Yellow light timer (DONE)
-    * All-red timer
-    * Blue waiting timer
-    * Purple waiting timer
-
     /************************* CLOCK TIMER *************************/
 
     // Basys 3 runs on 100MHz clock (100 million cycles per second)
@@ -123,19 +123,146 @@ module traffic_controller(
         end
     end
 
+    /************************* ALL-RED TIMER *************************/
+    
+    // define the 2-second all-red limit using 2 bits
+    parameter ALL_RED_MAX = 2'd2;
+
+    // define internal all-red timer register (2-bit register)
+    reg [1:0] all_red_count;
+
+    // implement sequential all-red timing logic (count by one-second intervals)
+    always @(posedge clk or posedge reset) begin
+        // IF reset has been activated
+        if (reset) begin
+            all_red_count <= 2'd0;           // reset counter to 0
+        end
+
+        // IF the machine is currently in an all-red state
+        else if ((current_state == ALL_RED_TO_BLUE) || (current_state == ALL_RED_TO_PURPLE)) begin
+            // IF one-second tick occurs
+            if (one_second_tick) begin
+                // IF count has reached the 2-second limit
+                if (all_red_count == ALL_RED_MAX)
+                    all_red_count <= 2'd0;   // reset counter to 0
+                
+                // IF count has NOT reached the 2-second limit
+                else
+                    all_red_count <= all_red_count + 1'b1;  // add one second to the counter and continue
+            end
+        end
+
+        // IF the machine is NOT in a yellow light state
+        else begin
+            all_red_count <= 2'd0;           // reset counter to 0
+        end
+    end
+    
+    /***********************************************************************************************************/
+    /*************************************** 4. SENSOR AND WAITING LOGIC ***************************************/
+    /***********************************************************************************************************/
+    
+    /************************* SENSOR DETECTION *************************/
+    
+    // determine whether Blue Street has vehicle detection from either direction
+    wire blue_vehicle_detected;
+    assign blue_vehicle_detected = blue_sensor_north || blue_sensor_south;
+    
+    // determine whether Purple Street has vehicle detection from either direction
+    wire purple_vehicle_detected;
+    assign purple_vehicle_detected = purple_sensor_east || purple_sensor_west;
+    
+    /************************* SENSOR RELEVANCE *************************/
+    
+    // define Blue Street waiting condition (vehicle detected while Purple Street is green)
+    wire blue_waiting_condition;
+    assign blue_waiting_condition = blue_vehicle_detected && (current_state == PURPLE_GREEN);
+
+    // define Purple Street waiting condition (vehicle detected while Blue Street is green)
+    wire purple_waiting_condition;
+    assign purple_waiting_condition = purple_vehicle_detected && (current_state == BLUE_GREEN);
+
+    /************************ BLUE WAITING TIMER ************************/
+    
+    // define the 10-second Blue waiting limit using 4 bits
+    parameter BLUE_WAITING_MAX = 4'd10;
+
+    // define internal blue waiting timer register (4-bit register)
+    reg [3:0] blue_waiting_count;
+
+    // implement sequential blue waiting timing logic (count by one-second intervals)
+    always @(posedge clk or posedge reset) begin
+        // IF reset has been activated
+        if (reset) begin
+            blue_waiting_count <= 4'd0;            // reset counter to 0
+        end
+
+        // IF the Blue Street waiting condition is active
+        else if (blue_waiting_condition) begin
+            // IF one-second tick occurs
+            if (one_second_tick) begin
+                // IF count has NOT reached the 10-second limit
+                if (blue_waiting_count < BLUE_WAITING_MAX)
+                    blue_waiting_count <= blue_waiting_count + 1'b1;    // add one second to the counter and continue
+                
+                // once the counter reaches 10 sec, it is not asigned a new value
+                // therefore, it will remain unchanged until blue_waiting_condition is false
+            end
+        end
+
+        // IF the Blue Street waiting condition has NOT been met
+        else begin
+            blue_waiting_count <= 4'd0;            // reset counter to 0
+        end
+    end
+    
+    /*********************** PURPLE WAITING TIMER ***********************/
+    
+    // define the 10-second Purple waiting limit using 4 bits
+    parameter PURPLE_WAITING_MAX = 4'd10;
+
+    // define internal Purple waiting timer register (4-bit register)
+    reg [3:0] purple_waiting_count;
+
+    // implement sequential Purple waiting timing logic (count by one-second intervals)
+    always @(posedge clk or posedge reset) begin
+        // IF reset has been activated
+        if (reset) begin
+            purple_waiting_count <= 4'd0;          // reset counter to 0
+        end
+
+        // IF the Purple Street waiting condition is active
+        else if (purple_waiting_condition) begin
+            // IF one-second tick occurs
+            if (one_second_tick) begin
+                // IF count has NOT reached the 10-second limit
+                if (purple_waiting_count < PURPLE_WAITING_MAX)
+                    purple_waiting_count <= purple_waiting_count + 1'b1;  // add one second to the counter and continue
+                
+                // once the counter reaches 10 sec, it is not asigned a new value
+                // therefore, it will remain unchanged until purple_waiting_condition is false
+            end
+        end
+
+        // IF the Purple Street waiting condition has NOT been met
+        else begin
+            purple_waiting_count <= 4'd0;          // reset counter to 0
+        end
+    end
+    
+    /*********************** CONTINUOUS DETECTION ***********************/
+    
+    // Maintain continuous Blue Street detection while Purple Street is GREEN.
+    // Reset Blue waiting timer if the Blue waiting condition is interrupted.
+    
+    // Maintain continuous Purple Street detection while Blue Street is GREEN.
+    // Reset Purple waiting timer if the Purple waiting condition is interrupted.
+
 endmodule
 
-/********************************* 4. Sensor and Waiting Logic *********************************/
-* Determine whether Blue Street has vehicle detection
-* Determine whether Purple Street has vehicle detection
-* Determine whether sensor inputs are relevant:
-  * Only during GREEN/RED states
-  * Ignore sensors during YELLOW/RED states
-  * Ignore sensors during ALL-RED state
-* Maintain continuous detection timers
-* Reset timer when required detection is interrupted
-
-/********************************* 5. FSM Next-State Logic *********************************/
+/***********************************************************************************************************/
+/***************************************** 5. FSM NEXT-STATE LOGIC *****************************************/
+/***********************************************************************************************************/
 ### Determining Factors
   * Current state
   * Relevant sensor detection
@@ -175,7 +302,10 @@ case current_state
             → ALL_RED_TO_BLUE
 ````
 
-/********************************* 6. FSM Output Logic *********************************/
+/***********************************************************************************************************/
+/****************************************** 6. FSM OUTPUT LOGIC ********************************************/
+/***********************************************************************************************************/
+
 // Set traffic light outputs based on the current state.
 ````
 ALL_RED_TO_BLUE
