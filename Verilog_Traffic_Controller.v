@@ -152,7 +152,7 @@ module traffic_controller(
             end
         end
 
-        // IF the machine is NOT in a yellow light state
+        // IF the machine is NOT in an all-red state
         else begin
             all_red_count <= 2'd0;           // reset counter to 0
         end
@@ -205,7 +205,7 @@ module traffic_controller(
                 if (blue_waiting_count < BLUE_WAITING_MAX)
                     blue_waiting_count <= blue_waiting_count + 1'b1;    // add one second to the counter and continue
                 
-                // once the counter reaches 10 sec, it is not asigned a new value
+                // once the counter reaches 10 sec, it is not assigned a new value
                 // therefore, it will remain unchanged until blue_waiting_condition is false
             end
         end
@@ -239,7 +239,7 @@ module traffic_controller(
                 if (purple_waiting_count < PURPLE_WAITING_MAX)
                     purple_waiting_count <= purple_waiting_count + 1'b1;  // add one second to the counter and continue
                 
-                // once the counter reaches 10 sec, it is not asigned a new value
+                // once the counter reaches 10 sec, it is not assigned a new value
                 // therefore, it will remain unchanged until purple_waiting_condition is false
             end
         end
