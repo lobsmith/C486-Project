@@ -3,20 +3,25 @@
 /***************** 1. MODULE DECLARATION & I/O *****************/
 // port declaration: define inputs and outputs
 module traffic_controller(
-  // 6 switch inputs (4 Hall sensors, clock, reset)
-  input  wire     clk,               // FPGA clock signal
-  input  wire     reset,             // reset signal
-  input  wire     hall_sensor[3:0],  // 4 Hall sensors
+  // INPUTS: clock and reset signals
+  input  wire     clk,                // FPGA clock signal
+  input  wire     reset,              // reset signal
 
-  // 8 LED outputs (2 red, 2 yellow, 2 green, 2 waiting indicators)
-  output wire     blue_green,        // BLUE: green;  PURPLE: red
-  output wire     blue_yellow,       // BLUE: yellow; PURPLE: red
-  output wire     blue_red,          // BLUE: red;    PURPLE: red (before transition to PURPLE_GREEN)
-  output wire     purple_green,      // BLUE: red;    PURPLE: green
-  output wire     purple_yellow,     // BLUE: red;    PURPLE: yellow
-  output wire     purple_red,        // BLUE: red;    PURPLE: red (before transition to BLUE_GREEN)
-  output wire     blue_waiting,      // blue waiting indicator
-  output wire     purple_waiting     // purple waiting indicator
+  // INPUTS: 4 Hall sensors
+  input  wire     blue_sensor_north,  // Blue Street, Northmost sensor (Southbound)
+  input  wire     blue_sensor_south,  // Blue Street, Southmost sensor (Northbound)
+  input  wire     purple_sensor_east, // Purple Street, Eastmost sensor (Westbound)
+  input  wire     purple_sensor_west, // Purple Street, Westmost sensor (Eastbound)
+
+  // OUTPUTS: 8 LEDs (2 red, 2 yellow, 2 green, 2 waiting indicators)
+  output wire     blue_green,         // BLUE: green;  PURPLE: red
+  output wire     blue_yellow,        // BLUE: yellow; PURPLE: red
+  output wire     blue_red,           // BLUE: red;    PURPLE: red (before transition to PURPLE_GREEN)
+  output wire     purple_green,       // BLUE: red;    PURPLE: green
+  output wire     purple_yellow,      // BLUE: red;    PURPLE: yellow
+  output wire     purple_red,         // BLUE: red;    PURPLE: red (before transition to BLUE_GREEN)
+  output wire     blue_waiting,       // blue waiting indicator
+  output wire     purple_waiting      // purple waiting indicator
 );
 endmodule
 
