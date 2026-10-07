@@ -17,21 +17,16 @@
 * ALL_RED_TO_PURPLE
 * PURPLE_GREEN
 * PURPLE_YELLOW
-## 3. Timing and Counters
+## 3. Traffic Light Timing
 * Clock divider / timing base
 * Yellow light timer
 * All-red timer
+## 4. Sensor and Waiting Logic
+* Blue Street sensor detection (ignore when irrelevant)
+* Purple Street sensor detection (ignore when irrelevant)
 * Blue waiting timer
 * Purple waiting timer
-## 4. Sensor and Waiting Logic
-* Determine whether Blue Street has vehicle detection
-* Determine whether Purple Street has vehicle detection
-* Determine whether sensor inputs are relevant:
-  * Only during GREEN/RED states
-  * Ignore sensors during YELLOW/RED states
-  * Ignore sensors during ALL-RED state
-* Maintain continuous detection timers
-* Reset timer when required detection is interrupted
+* Continuous detection (reset when interrupted)
 ## 5. FSM Next-State Logic
 ### Determining Factors
   * Current state
