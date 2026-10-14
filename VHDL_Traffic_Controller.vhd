@@ -2,6 +2,7 @@
 
 library IEEE;                                    -- declare standard VHDL libraries
 use IEEE.STD_LOGIC_1164.ALL;                     -- import digital logic (STD_LOGIC_VECTOR)
+use IEEE.NUMERIC_STD.ALL;                        -- import standard numeric types and arithmetic operations (unsigned, signed)
 
 -- `timescale 1ns / 1ps
 
@@ -52,8 +53,49 @@ architecture Behavioral of traffic_controller is
     signal current_state : STD_LOGIC_VECTOR(2 downto 0);
     signal next_state    : STD_LOGIC_VECTOR(2 downto 0);
 
+    -- Basys 3 runs on 100MHz clock (100 million cycles per second)
+    -- define the 100,000,000 cycle limit using 27 bits
+    constant CLOCK_MAX : INTEGER := 100000000;
+
+    -- define internal timing register (27-bit register)
+    signal count : STD_LOGIC_VECTOR(26 downto 0);
+
+    -- generate a one-second timing tick (1-bit register)
+    signal one_second_tick : STD_LOGIC;
+
 begin
-    -- other stuff here
+    
+    -------------------------------------------------------------------------------------------------------------
+    ----------------------------------------- 3. TRAFFIC LIGHT TIMING -------------------------------------------
+    -------------------------------------------------------------------------------------------------------------
+
+    -------------------------- CLOCK TIMER --------------------------
+    
+    -- implement sequential timing logic (producing one pulse per second)
+    -- PROCESS executes when the clock has a rising edge or reset is activated
+    process(clk, reset) begin
+        if reset == '1' then
+            count           <= (others <= 0);        -- reset counter to 0 (others <= '0' sets all bits to 0)
+            one_second_tick <= '0';                  -- one-second signal turned off
+
+        -- NORMAL OPERATION: IF clock is on rising edge and reset is not activated
+        elsif rising_edge(clk) then
+            -- DEFAULT: no one-second tick at the beginning of each clock cycle (1'b0)
+            one_second_tick <= '0';
+
+            -- IF count has reached the 100MHz limit (count == 99,999,999)
+            if unsigned(count) = CLOCK_MAX - 1 then
+                count           <= (others <= 0);    -- reset counter to 0
+                one_second_tick <= '1';              -- produce one-second tick
+            end
+            
+            -- IF count has NOT reached the 100MHz limit (count != 99,999,999)
+            else then
+                count <= std_logic_vector(unsigned(count) + 1);       -- add one cycle to the counter and continue
+            end if
+        end if
+    end process;
+
 end Behavioral;
 
 --------------------------------------------------- END OF VHDL CODE ---------------------------------------------------
@@ -63,16 +105,6 @@ end Behavioral;
     -------------------------------------------------------------------------------------------------------------
     
     -------------------------- CLOCK TIMER --------------------------
-
-    -- Basys 3 runs on 100MHz clock (100 million cycles per second)
-    -- define the 100,000,000 cycle limit using 27 bits
-    parameter CLOCK_MAX = 27'd100000000;
-
-    -- define internal timing register (27-bit register)
-    reg [26:0] count;
-
-    -- generate a one-second timing tick (1-bit register)
-    reg one_second_tick;
 
     -- implement sequential timing logic (producing one pulse per second)
     -- ALWAYS block executes when the clock has a rising edge or reset is activated
