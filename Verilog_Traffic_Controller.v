@@ -19,14 +19,14 @@ module traffic_controller(
     input  wire  purple_sensor_west,         // Purple Street, Westmost sensor (Eastbound)
 
     // OUTPUTS: 8 LEDs (2 red, 2 yellow, 2 green, 2 waiting indicators)
-    output wire  blue_green,                 // BLUE: green;  PURPLE: red
-    output wire  blue_yellow,                // BLUE: yellow; PURPLE: red
-    output wire  blue_red,                   // BLUE: red;    PURPLE: red (before transition to PURPLE_GREEN)
-    output wire  purple_green,               // BLUE: red;    PURPLE: green
-    output wire  purple_yellow,              // BLUE: red;    PURPLE: yellow
-    output wire  purple_red,                 // BLUE: red;    PURPLE: red (before transition to BLUE_GREEN)
-    output wire  blue_waiting,               // blue waiting indicator
-    output wire  purple_waiting              // purple waiting indicator
+    output reg   blue_green,                 // BLUE: green;  PURPLE: red
+    output reg   blue_yellow,                // BLUE: yellow; PURPLE: red
+    output reg   blue_red,                   // BLUE: red;    PURPLE: red (before transition to PURPLE_GREEN)
+    output reg   purple_green,               // BLUE: red;    PURPLE: green
+    output reg   purple_yellow,              // BLUE: red;    PURPLE: yellow
+    output reg   purple_red,                 // BLUE: red;    PURPLE: red (before transition to BLUE_GREEN)
+    output reg   blue_waiting,               // blue waiting indicator
+    output reg   purple_waiting              // purple waiting indicator
 );
 
     /***********************************************************************************************************/
@@ -99,28 +99,22 @@ module traffic_controller(
     // implement sequential yellow light timing logic (count by one-second intervals)
     always @(posedge clk or posedge reset) begin
         // IF reset has been activated
-        if (reset) begin
-            yellow_count <= 2'd0;            // reset counter to 0
-        end
+        if (reset) yellow_count <= 2'd0;                                 // reset counter to 0
 
         // IF the machine is currently in a yellow light state
         else if ((current_state == BLUE_YELLOW) || (current_state == PURPLE_YELLOW)) begin
             // IF one-second tick occurs
             if (one_second_tick) begin
                 // IF count has reached the 3-second limit
-                if (yellow_count == YELLOW_MAX)
-                    yellow_count <= 2'd0;    // reset counter to 0
+                if (yellow_count == YELLOW_MAX) yellow_count <= 2'd0;    // reset counter to 0
                 
                 // IF count has NOT reached the 3-second limit
-                else
-                    yellow_count <= yellow_count + 1'b1;  // add one second to the counter and continue
+                else yellow_count <= yellow_count + 1'b1;                // add one second to the counter and continue
             end
         end
 
         // IF the machine is NOT in a yellow light state
-        else begin
-            yellow_count <= 2'd0;            // reset counter to 0
-        end
+        else yellow_count <= 2'd0;                                       // reset counter to 0
     end
 
     /************************* ALL-RED TIMER *************************/
@@ -134,28 +128,22 @@ module traffic_controller(
     // implement sequential all-red timing logic (count by one-second intervals)
     always @(posedge clk or posedge reset) begin
         // IF reset has been activated
-        if (reset) begin
-            all_red_count <= 2'd0;           // reset counter to 0
-        end
+        if (reset) all_red_count <= 2'd0;                                  // reset counter to 0
 
         // IF the machine is currently in an all-red state
         else if ((current_state == ALL_RED_TO_BLUE) || (current_state == ALL_RED_TO_PURPLE)) begin
             // IF one-second tick occurs
             if (one_second_tick) begin
                 // IF count has reached the 2-second limit
-                if (all_red_count == ALL_RED_MAX)
-                    all_red_count <= 2'd0;   // reset counter to 0
+                if (all_red_count == ALL_RED_MAX) all_red_count <= 2'd0;   // reset counter to 0
                 
                 // IF count has NOT reached the 2-second limit
-                else
-                    all_red_count <= all_red_count + 1'b1;  // add one second to the counter and continue
+                else all_red_count <= all_red_count + 1'b1;                // add one second to the counter and continue
             end
         end
 
         // IF the machine is NOT in an all-red state
-        else begin
-            all_red_count <= 2'd0;           // reset counter to 0
-        end
+        else all_red_count <= 2'd0;                                        // reset counter to 0
     end
 
     /*********************** GREEN LIGHT TIMER ***********************/
@@ -176,9 +164,7 @@ module traffic_controller(
     // implement sequential green light timing logic for Blue Street (count by one-second intervals)
     always @(posedge clk or posedge reset) begin
         // IF reset has been activated
-        if (reset) begin
-            blue_green_count <= 6'd0;        // reset counter to 0
-        end
+        if (reset) blue_green_count <= 6'd0;                          // reset counter to 0
 
         // IF Blue Street is currently in the green state
         else if (current_state == BLUE_GREEN) begin
@@ -191,17 +177,13 @@ module traffic_controller(
         end
 
         // IF Blue Street is NOT in the green state
-        else begin
-            blue_green_count <= 6'd0;        // reset counter to 0
-        end
+        else blue_green_count <= 6'd0;                                // reset counter to 0
     end
 
     // implement sequential green light timing logic for Purple Street (count by one-second intervals)
     always @(posedge clk or posedge reset) begin
         // IF reset has been activated
-        if (reset) begin
-            purple_green_count <= 6'd0;        // reset counter to 0
-        end
+        if (reset) purple_green_count <= 6'd0;                        // reset counter to 0
         
         // IF Purple Street is currently in the green state
         else if (current_state == PURPLE_GREEN) begin
@@ -214,9 +196,7 @@ module traffic_controller(
         end
         
         // IF Purple Street is NOT in the green state
-        else begin
-            purple_green_count <= 6'd0;        // reset counter to 0
-        end
+        else purple_green_count <= 6'd0;                              // reset counter to 0
     end
     
     /***********************************************************************************************************/
@@ -254,9 +234,7 @@ module traffic_controller(
     // implement sequential blue waiting timing logic (count by one-second intervals)
     always @(posedge clk or posedge reset) begin
         // IF reset has been activated
-        if (reset) begin
-            blue_waiting_count <= 4'd0;            // reset counter to 0
-        end
+        if (reset) blue_waiting_count <= 4'd0;                          // reset counter to 0
 
         // IF the Blue Street waiting condition is active
         else if (blue_waiting_condition) begin
@@ -272,9 +250,7 @@ module traffic_controller(
         end
 
         // IF the Blue Street waiting condition has NOT been met
-        else begin
-            blue_waiting_count <= 4'd0;            // reset counter to 0
-        end
+        else blue_waiting_count <= 4'd0;                                // reset counter to 0
     end
     
     /*********************** PURPLE WAITING TIMER ***********************/
@@ -288,9 +264,7 @@ module traffic_controller(
     // implement sequential Purple waiting timing logic (count by one-second intervals)
     always @(posedge clk or posedge reset) begin
         // IF reset has been activated
-        if (reset) begin
-            purple_waiting_count <= 4'd0;          // reset counter to 0
-        end
+        if (reset) purple_waiting_count <= 4'd0;                          // reset counter to 0
 
         // IF the Purple Street waiting condition is active
         else if (purple_waiting_condition) begin
@@ -306,9 +280,7 @@ module traffic_controller(
         end
 
         // IF the Purple Street waiting condition has NOT been met
-        else begin
-            purple_waiting_count <= 4'd0;          // reset counter to 0
-        end
+        else purple_waiting_count <= 4'd0;                                // reset counter to 0
     end
     
     /*********************** CONTINUOUS DETECTION ***********************/
@@ -368,51 +340,85 @@ module traffic_controller(
 
             // DEFAULT: start state is ALL_RED_TO_BLUE
             // much like C++/Java, Verilog requires a default case
-            default: begin
-                next_state = ALL_RED_TO_BLUE;
-            end
+            default: next_state = ALL_RED_TO_BLUE;
         endcase
     end
 
     // implement sequential logic that updates current_state on the positive clock edge
     always @(posedge clk or posedge reset) begin
-        if (reset)
-            current_state <= ALL_RED_TO_BLUE;
-        else
-            current_state <= next_state;
+        if (reset) current_state <= ALL_RED_TO_BLUE;
+        else       current_state <= next_state;
     end
 
+    /***********************************************************************************************************/
+    /****************************************** 6. FSM OUTPUT LOGIC ********************************************/
+    /***********************************************************************************************************/
+
+    // set traffic light outputs based on the current state
+    always @(*) begin
+        // DEFAULT: all outputs are off
+        blue_green     = 1'b0;
+        blue_yellow    = 1'b0;
+        blue_red       = 1'b0;
+        purple_green   = 1'b0;
+        purple_yellow  = 1'b0;
+        purple_red     = 1'b0;
+
+        case (current_state)
+            // ALL_RED_TO_BLUE: Blue Street = RED, Purple Street = RED
+            ALL_RED_TO_BLUE: begin
+                blue_red = 1'b1;
+                purple_red = 1'b1;
+            end
+
+            // BLUE_GREEN: Blue Street = GREEN, Purple Street = RED
+            BLUE_GREEN: begin
+                blue_green = 1'b1;
+                purple_red = 1'b1;
+            end
+
+            // BLUE_YELLOW: Blue Street = YELLOW, Purple Street = RED
+            BLUE_YELLOW: begin
+                blue_yellow = 1'b1;
+                purple_red = 1'b1;
+            end
+
+            // ALL_RED_TO_PURPLE: Blue Street = RED, Purple Street = RED
+            ALL_RED_TO_PURPLE: begin
+                blue_red = 1'b1;
+                purple_red = 1'b1;
+            end
+
+            // PURPLE_GREEN: Blue Street = RED, Purple Street = GREEN
+            PURPLE_GREEN: begin
+                blue_red = 1'b1;
+                purple_green = 1'b1;
+            end
+
+            // PURPLE_YELLOW: Blue Street = RED, Purple Street = YELLOW
+            PURPLE_YELLOW: begin
+                blue_red = 1'b1;
+                purple_yellow = 1'b1;
+            end
+
+            // DEFAULT: Blue Street = RED, Purple Street = RED
+            default: begin
+                blue_red = 1'b1;
+                purple_red = 1'b1;
+            end
+        endcase
+    end
+
+    // set waiting indicator outputs based on the current state
+    always @(*) begin
+        // DEFAULT: both waiting indicators are off
+        blue_waiting   = 1'b0;
+        purple_waiting = 1'b0;
+
+        // Blue Street waiting
+        if (blue_waiting_condition) blue_waiting = 1'b1;
+
+        // Purple Street waiting
+        if (purple_waiting_condition) purple_waiting = 1'b1;
+    end
 endmodule
-
-/***********************************************************************************************************/
-/****************************************** 6. FSM OUTPUT LOGIC ********************************************/
-/***********************************************************************************************************/
-
-// Set traffic light outputs based on the current state.
-````
-ALL_RED_TO_BLUE
-  Blue = RED
-  Purple = RED
-
-BLUE_GREEN
-  Blue = GREEN
-  Purple = RED
-
-BLUE_YELLOW
-  Blue = YELLOW
-  Purple = RED
-
-ALL_RED_TO_PURPLE
-  Blue = RED
-  Purple = RED
-
-PURPLE_GREEN
-  Blue = RED
-  Purple = GREEN
-
-PURPLE_YELLOW
-  Blue = RED
-  Purple = YELLOW
-
-Waiting indicators
-````
