@@ -42,26 +42,32 @@ architecture Behavioral of traffic_controller is
     -------------------------------------------------------------------------------------------------------------
     
     -- define unique binary encodings for each state; start state: ALL_RED_TO_BLUE
-    constant ALL_RED_TO_BLUE    = STD_LOGIC_VECTOR(2 downto 0) := "000";
-    constant BLUE_GREEN         = STD_LOGIC_VECTOR(2 downto 0) := "001";
-    constant BLUE_YELLOW        = STD_LOGIC_VECTOR(2 downto 0) := "010";
-    constant ALL_RED_TO_PURPLE  = STD_LOGIC_VECTOR(2 downto 0) := "011";
-    constant PURPLE_GREEN       = STD_LOGIC_VECTOR(2 downto 0) := "100";
-    constant PURPLE_YELLOW      = STD_LOGIC_VECTOR(2 downto 0) := "101";
+    -- STATE is added, since VHDL is not case sensitive and will confuse state names with LED outputs
+    constant STATE_ALL_RED_TO_BLUE   : STD_LOGIC_VECTOR(2 downto 0) := "000";
+    constant STATE_BLUE_GREEN        : STD_LOGIC_VECTOR(2 downto 0) := "001";
+    constant STATE_BLUE_YELLOW       : STD_LOGIC_VECTOR(2 downto 0) := "010";
+    constant STATE_ALL_RED_TO_PURPLE : STD_LOGIC_VECTOR(2 downto 0) := "011";
+    constant STATE_PURPLE_GREEN      : STD_LOGIC_VECTOR(2 downto 0) := "100";
+    constant STATE_PURPLE_YELLOW     : STD_LOGIC_VECTOR(2 downto 0) := "101";
 
     -- define state registers (3 bits wide for 6 states)
-    signal current_state : STD_LOGIC_VECTOR(2 downto 0);
-    signal next_state    : STD_LOGIC_VECTOR(2 downto 0);
+    signal current_state      : STD_LOGIC_VECTOR(2 downto 0);
+    signal next_state         : STD_LOGIC_VECTOR(2 downto 0);
 
     -- Basys 3 runs on 100MHz clock (100 million cycles per second)
-    -- define the 100,000,000 cycle limit using 27 bits
-    constant CLOCK_MAX : INTEGER := 100000000;
+    -- define timing limits
+    constant CLOCK_MAX        : INTEGER := 100000000;       -- 100,000,000 clock cycle limit - 27 bits
+    constant YELLOW_MAX       : INTEGER := 3;               -- 3-second yellow light limit - 2 bits
+    constant ALL_RED_MAX      : INTEGER := 2;               -- 2-second all-red limit - 2 bits
+    constant GREEN_MAX        : INTEGER := 30;              -- 30-second all-green limit - 6 bits
 
-    -- define internal timing register (27-bit register)
-    signal count : STD_LOGIC_VECTOR(26 downto 0);
-
-    -- generate a one-second timing tick (1-bit register)
-    signal one_second_tick : STD_LOGIC;
+    -- define internal timing registers
+    signal count              : UNSIGNED(26 downto 0);      -- internal timing register - 27 bits
+    signal one_second_tick    : STD_LOGIC;                  -- one-second timing tick - 1 bit
+    signal yellow_count       : UNSIGNED(1 downto 0);       -- internal yellow light timer register - 2 bits
+    signal all_red_count      : UNSIGNED(1 downto 0);       -- internal all-red timer register - 2 bits
+    signal blue_green_count   : UNSIGNED(5 downto 0);       -- internal green timer register for Blue Street - 6 bits
+    signal purple_green_count : UNSIGNED(5 downto 0);       -- internal green timer register for Purple Street - 6 bits
 
 begin
     
@@ -74,8 +80,8 @@ begin
     -- implement sequential timing logic (producing one pulse per second)
     -- PROCESS executes when the clock has a rising edge or reset is activated
     process(clk, reset) begin
-        if reset == '1' then
-            count           <= (others <= 0);        -- reset counter to 0 (others <= '0' sets all bits to 0)
+        if reset = '1' then
+            count           <= (others => '0');      -- reset counter to 0 (others => '0' sets all bits to 0)
             one_second_tick <= '0';                  -- one-second signal turned off
 
         -- NORMAL OPERATION: IF clock is on rising edge and reset is not activated
@@ -85,15 +91,42 @@ begin
 
             -- IF count has reached the 100MHz limit (count == 99,999,999)
             if unsigned(count) = CLOCK_MAX - 1 then
-                count           <= (others <= 0);    -- reset counter to 0
+                count           <= (others => '0');  -- reset counter to 0
                 one_second_tick <= '1';              -- produce one-second tick
             end
             
             -- IF count has NOT reached the 100MHz limit (count != 99,999,999)
-            else then
+            else
                 count <= std_logic_vector(unsigned(count) + 1);       -- add one cycle to the counter and continue
-            end if
-        end if
+            end if;
+        end if;
+    end process;
+
+    ------------------------ YELLOW LIGHT TIMER ------------------------
+
+    -- implement sequential yellow light timing logic (count by one-second intervals)
+    process(clk, reset) begin
+        -- IF reset has been activated
+        if reset = '1' then
+            yellow_count <= (others => '0');        -- reset counter to 0
+
+        -- IF clock is on rising edge and reset is not activated
+        elsif rising_edge(clk) then
+            -- IF the machine is currently in a yellow light state
+            if (current_state = STATE_BLUE_YELLOW) or (current_state = STATE_PURPLE_YELLOW) then
+                -- IF one-second tick occurs
+                if one_second_tick = '1' then
+                    -- IF count has reached the 3-second limit
+                    if yellow_count = to_unsigned(STATE_YELLOW_MAX, yellow_count'length) then yellow_count <= (others => '0');    -- reset counter to 0
+                    
+                    -- IF count has NOT reached the 3-second limit
+                    else yellow_count <= yellow_count + 1;                -- add one second to the counter and continue
+                end if;
+    
+            -- IF the machine is NOT in a yellow light state
+            else yellow_count <= (others => '0');                                       -- reset counter to 0
+            end if;
+        end if;
     end process;
 
 end Behavioral;
@@ -103,73 +136,9 @@ end Behavioral;
     -------------------------------------------------------------------------------------------------------------
     ----------------------------------------- 3. TRAFFIC LIGHT TIMING -------------------------------------------
     -------------------------------------------------------------------------------------------------------------
-    
-    -------------------------- CLOCK TIMER --------------------------
-
-    -- implement sequential timing logic (producing one pulse per second)
-    -- ALWAYS block executes when the clock has a rising edge or reset is activated
-    always @(posedge clk or posedge reset) begin
-        -- IF reset has been activated
-        if (reset) begin
-            count           <= 27'd0;        -- reset counter to 0
-            one_second_tick <= 1'b0;         -- one-second signal turned off (1'b0)
-        end
-
-        -- NORMAL OPERATION: IF clock is on rising edge and reset is not activated
-        else begin
-            -- DEFAULT: no one-second tick at the beginning of each clock cycle (1'b0)
-            one_second_tick <= 1'b0;
-
-            -- IF count has reached the 100MHz limit (count == 99,999,999)
-            if (count == CLOCK_MAX - 1) begin
-                count           <= 27'd0;    -- reset counter to 0
-                one_second_tick <= 1'b1;     -- produce one-second tick (1'b1)
-            end
-            
-            -- IF count has NOT reached the 100MHz limit (count != 99,999,999)
-            else begin
-                count <= count + 1'b1;       -- add one cycle to the counter and continue
-            end
-        end
-    end
-
-    ------------------------ YELLOW LIGHT TIMER ------------------------
-
-    -- define the 3-second yellow light limit using 2 bits
-    parameter YELLOW_MAX = 2'd3;
-
-    -- define internal yellow light timer register (2-bit register)
-    reg [1:0] yellow_count;
-
-    -- implement sequential yellow light timing logic (count by one-second intervals)
-    always @(posedge clk or posedge reset) begin
-        -- IF reset has been activated
-        if (reset) yellow_count <= 2'd0;                                 -- reset counter to 0
-
-        -- IF the machine is currently in a yellow light state
-        else if ((current_state == BLUE_YELLOW) || (current_state == PURPLE_YELLOW)) begin
-            -- IF one-second tick occurs
-            if (one_second_tick) begin
-                -- IF count has reached the 3-second limit
-                if (yellow_count == YELLOW_MAX) yellow_count <= 2'd0;    -- reset counter to 0
-                
-                -- IF count has NOT reached the 3-second limit
-                else yellow_count <= yellow_count + 1'b1;                -- add one second to the counter and continue
-            end
-        end
-
-        -- IF the machine is NOT in a yellow light state
-        else yellow_count <= 2'd0;                                       -- reset counter to 0
-    end
 
     -------------------------- ALL-RED TIMER --------------------------
     
-    -- define the 2-second all-red limit using 2 bits
-    parameter ALL_RED_MAX = 2'd2;
-
-    -- define internal all-red timer register (2-bit register)
-    reg [1:0] all_red_count;
-
     -- implement sequential all-red timing logic (count by one-second intervals)
     always @(posedge clk or posedge reset) begin
         -- IF reset has been activated
@@ -193,13 +162,6 @@ end Behavioral;
 
     ------------------------ GREEN LIGHT TIMER ------------------------
     
-    -- define the 30-second yellow light limit using 6 bits
-    parameter GREEN_MAX = 6'd30;
-
-    -- define internal timer registers for each street (6 bits each)
-    reg [5:0] blue_green_count;
-    reg [5:0] purple_green_count;
-
     -- define signals indicating when each green timer expires
     wire blue_green_timer_done;
     wire purple_green_timer_done;
