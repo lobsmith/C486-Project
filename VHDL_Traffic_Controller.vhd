@@ -34,23 +34,29 @@ entity traffic_controller is
     );
 end traffic_controller;
 
---------------------------------------------------- END OF VHDL CODE ---------------------------------------------------
-
+architecture Behavioral of traffic_controller is
+    
     -------------------------------------------------------------------------------------------------------------
     ---------------------------------- 2. FSM STATE DEFINITIONS & ARCHITECTURE ----------------------------------
     -------------------------------------------------------------------------------------------------------------
-
+    
     -- define unique binary encodings for each state; start state: ALL_RED_TO_BLUE
-    parameter ALL_RED_TO_BLUE   = 3'b000;    -- ALL_RED_TO_BLUE   = 0b000
-    parameter BLUE_GREEN        = 3'b001;    -- BLUE_GREEN        = 0b001
-    parameter BLUE_YELLOW       = 3'b010;    -- BLUE_YELLOW       = 0b010
-    parameter ALL_RED_TO_PURPLE = 3'b011;    -- ALL_RED_TO_PURPLE = 0b011
-    parameter PURPLE_GREEN      = 3'b100;    -- PURPLE_GREEN      = 0b100
-    parameter PURPLE_YELLOW     = 3'b101;    -- PURPLE_YELLOW     = 0b101
+    constant ALL_RED_TO_BLUE    = STD_LOGIC_VECTOR(2 downto 0) := "000";
+    constant BLUE_GREEN         = STD_LOGIC_VECTOR(2 downto 0) := "001";
+    constant BLUE_YELLOW        = STD_LOGIC_VECTOR(2 downto 0) := "010";
+    constant ALL_RED_TO_PURPLE  = STD_LOGIC_VECTOR(2 downto 0) := "011";
+    constant PURPLE_GREEN       = STD_LOGIC_VECTOR(2 downto 0) := "100";
+    constant PURPLE_YELLOW      = STD_LOGIC_VECTOR(2 downto 0) := "101";
 
     -- define state registers (3 bits wide for 6 states)
-    reg [2:0] current_state;
-    reg [2:0] next_state;
+    signal current_state : STD_LOGIC_VECTOR(2 downto 0);
+    signal next_state    : STD_LOGIC_VECTOR(2 downto 0);
+
+begin
+    -- other stuff here
+end Behavioral;
+
+--------------------------------------------------- END OF VHDL CODE ---------------------------------------------------
 
     -------------------------------------------------------------------------------------------------------------
     ----------------------------------------- 3. TRAFFIC LIGHT TIMING -------------------------------------------
