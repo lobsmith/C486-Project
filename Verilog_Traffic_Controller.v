@@ -157,6 +157,67 @@ module traffic_controller(
             all_red_count <= 2'd0;           // reset counter to 0
         end
     end
+
+    /*********************** GREEN LIGHT TIMER ***********************/
+    
+    // define the 30-second yellow light limit using 6 bits
+    parameter GREEN_MAX = 6'd30;
+
+    // define internal timer registers for each street (6 bits each)
+    reg [5:0] blue_green_count;
+    reg [5:0] purple_green_count;
+
+    // define signals indicating when each green timer expires
+    wire blue_green_timer_done;
+    wire purple_green_timer_done;
+    assign blue_green_timer_done = (current_state == BLUE_GREEN) && (blue_green_count >= GREEN_MAX);
+    assign purple_green_timer_done = (current_state == PURPLE_GREEN) && (purple_green_count >= GREEN_MAX);
+
+    // implement sequential green light timing logic for Blue Street (count by one-second intervals)
+    always @(posedge clk or posedge reset) begin
+        // IF reset has been activated
+        if (reset) begin
+            blue_green_count <= 6'd0;        // reset counter to 0
+        end
+
+        // IF Blue Street is currently in the green state
+        else if (current_state == BLUE_GREEN) begin
+            // IF one-second tick occurs
+            if (one_second_tick) begin
+                // IF count has NOT reached the 30-second limit
+                if (blue_green_count < GREEN_MAX)
+                    blue_green_count <= blue_green_count + 1'b1;      // add one second to the counter and continue
+            end
+        end
+
+        // IF Blue Street is NOT in the green state
+        else begin
+            blue_green_count <= 6'd0;        // reset counter to 0
+        end
+    end
+
+    // implement sequential green light timing logic for Purple Street (count by one-second intervals)
+    always @(posedge clk or posedge reset) begin
+        // IF reset has been activated
+        if (reset) begin
+            purple_green_count <= 6'd0;        // reset counter to 0
+        end
+        
+        // IF Purple Street is currently in the green state
+        else if (current_state == PURPLE_GREEN) begin
+            // IF one-second tick occurs
+            if (one_second_tick) begin
+                // IF count has NOT reached the 30-second limit
+                if (purple_green_count < GREEN_MAX)
+                    purple_green_count <= purple_green_count + 1'b1;  // add one second to the counter and continue
+            end
+        end
+        
+        // IF Purple Street is NOT in the green state
+        else begin
+            purple_green_count <= 6'd0;        // reset counter to 0
+        end
+    end
     
     /***********************************************************************************************************/
     /*************************************** 4. SENSOR AND WAITING LOGIC ***************************************/
@@ -258,49 +319,70 @@ module traffic_controller(
     // Maintain continuous Purple Street detection while Blue Street is GREEN.
     // Reset Purple waiting timer if the Purple waiting condition is interrupted.
 
+    /***********************************************************************************************************/
+    /***************************************** 5. FSM NEXT-STATE LOGIC *****************************************/
+    /***********************************************************************************************************/
+
+    always @(*) begin
+        // DEFAULT: remain in the current state if no transition occurs
+        next_state = current_state;
+
+        case (current_state)
+            // ALL-RED: allow 2 seconds before Blue Street turns green
+            ALL_RED_TO_BLUE: begin
+                if (all_red_count >= ALL_RED_MAX)
+                    next_state = BLUE_GREEN;
+            end
+
+            // BLUE GREEN: switch when Purple Street has waited 10 seconds
+            // OR Blue Street's 30-second green limit expires
+            BLUE_GREEN: begin
+                if ((purple_waiting_count >= PURPLE_WAITING_MAX) || blue_green_timer_done)
+                    next_state = BLUE_YELLOW;
+            end
+
+            // BLUE YELLOW: allow 3 seconds before ALL-RED
+            BLUE_YELLOW: begin
+                if (yellow_count >= YELLOW_MAX)
+                    next_state = ALL_RED_TO_PURPLE;
+            end
+            
+            // ALL-RED: allow 2 seconds before Purple Street turns green
+            ALL_RED_TO_PURPLE: begin
+                if (all_red_count >= ALL_RED_MAX)
+                    next_state = PURPLE_GREEN;
+            end
+
+            // PURPLE GREEN: switch when Blue Street has waited 10 seconds
+            // OR Purple Street's 30-second green limit expires
+            PURPLE_GREEN: begin
+                if ((blue_waiting_count >= BLUE_WAITING_MAX) || purple_green_timer_done)
+                    next_state = PURPLE_YELLOW;
+            end
+
+            // PURPLE YELLOW: allow 3 seconds before ALL-RED
+            PURPLE_YELLOW: begin
+                if (yellow_count >= YELLOW_MAX)
+                    next_state = ALL_RED_TO_BLUE;
+            end
+
+            // DEFAULT: start state is ALL_RED_TO_BLUE
+            // much like C++/Java, Verilog requires a default case
+            default: begin
+                next_state = ALL_RED_TO_BLUE;
+            end
+        endcase
+    end
+
+    // implement sequential logic that updates current_state on the positive clock edge
+    always @(posedge clk or posedge reset) begin
+        if (reset)
+            current_state <= ALL_RED_TO_BLUE;
+        else
+            current_state <= next_state;
+    end
+
 endmodule
-
-/***********************************************************************************************************/
-/***************************************** 5. FSM NEXT-STATE LOGIC *****************************************/
-/***********************************************************************************************************/
-### Determining Factors
-  * Current state
-  * Relevant sensor detection
-  * Waiting timer
-  * Yellow timer
-  * All-red timer
-### Full Structure
-````
-case current_state
-
-    ALL_RED_TO_BLUE:
-        wait for all-red timing
-        → BLUE_GREEN
-
-    BLUE_GREEN:
-        if Purple has been continuously detected for 10 sec
-            → BLUE_YELLOW
-        otherwise
-            → BLUE_GREEN
-
-    BLUE_YELLOW:
-        when yellow timer expires
-            → ALL_RED_TO_PURPLE
-
-    ALL_RED_TO_PURPLE:
-        when all-red timer expires
-            → PURPLE_GREEN
-
-    PURPLE_GREEN:
-        if Blue has been continuously detected for 10 sec
-            → PURPLE_YELLOW
-        otherwise
-            → PURPLE_GREEN
-
-    PURPLE_YELLOW:
-        when yellow timer expires
-            → ALL_RED_TO_BLUE
-````
 
 /***********************************************************************************************************/
 /****************************************** 6. FSM OUTPUT LOGIC ********************************************/
