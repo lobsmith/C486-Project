@@ -148,7 +148,7 @@ module traffic_controller(
 
     /*********************** GREEN LIGHT TIMER ***********************/
     
-    // define the 30-second yellow light limit using 6 bits
+    // define the 30-second green light limit using 6 bits
     parameter GREEN_MAX = 6'd30;
 
     // define internal timer registers for each street (6 bits each)
