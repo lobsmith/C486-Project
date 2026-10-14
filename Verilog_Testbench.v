@@ -79,7 +79,7 @@ module verilog_controller_tb();
         // give the clock time to operate
         #10;
 
-        // IF Blue Street is green and Purple Street is red, start-up test is successful
+        // IF Blue Street is green and Purple Street is red, then start-up test is successful
         if (tb_blue_green == 1'b1 && tb_blue_yellow == 1'b0 && tb_blue_red == 1'b0 &&
             tb_purple_green == 1'b0 && tb_purple_yellow == 1'b0 && tb_purple_red == 1'b1)
             
@@ -97,7 +97,7 @@ module verilog_controller_tb();
         // give the clock time to operate
         #100;
 
-        // IF Blue Street is green and Purple Street is red, normal operation test is successful
+        // IF Blue Street is green and Purple Street is red, then normal operation test is successful
         if (tb_blue_green == 1'b1 && tb_blue_yellow == 1'b0 && tb_blue_red == 1'b0 &&
             tb_purple_green == 1'b0 && tb_purple_yellow == 1'b0 && tb_purple_red == 1'b1)
             
@@ -109,103 +109,180 @@ module verilog_controller_tb();
         
         /****************** TEST 3: VEHICLE DETECTION BELOW WAITING THRESHOLD *********************/
 
-        // give the clock time to begin test 3.1
+        // give the clock time to begin test 3.1A
         #100;
         
-        /* -------------- TEST 3.1: BLUE STREET NORTH SENSOR DETECTS A VEHICLE -------------- */
-        tb_blue_north = 1;
+        /* -------------- TEST 3.1A: BLUE STREET NORTH SENSOR DETECTS A VEHICLE ------------- */
+        tb_blue_north = 1; #10;
 
         // IF Blue Street is red and Purple Street is green when Blue Street North detects a vehicle,
-        // Blue Street North detection test is successful
+        // then Blue Street North detection test is successful
         if (tb_blue_green == 1'b0 && tb_blue_yellow == 1'b0 && tb_blue_red == 1'b1 &&
             tb_purple_green == 1'b1 && tb_purple_yellow == 1'b0 && tb_purple_red == 1'b0)
             
-            $display("TEST 3.1 PASSED: Blue Street North sensor detected a vehicle and did not trigger a transition.");
+            $display("TEST 3.1A PASSED: Blue Street North sensor detected a vehicle and did not trigger a transition.");
 
         // OTHERWISE, Blue Street North detection test is unsuccessful
         else
-            $display("TEST 3.1 FAILED: Unexpected traffic light outputs during Blue Street North detection.");
+            $display("TEST 3.1A FAILED: Unexpected traffic light outputs during Blue Street North detection.");
 
         // remove the waiting vehicle before waiting threshold is reached
         tb_blue_north = 0;
         
-        // give the clock time to begin test 3.2
+        // give the clock time to begin test 3.1B
         #100;
         
-        /* -------------- TEST 3.2: BLUE STREET SOUTH SENSOR DETECTS A VEHICLE -------------- */
-        tb_blue_south = 1;
+        /* -------------- TEST 3.1B: BLUE STREET SOUTH SENSOR DETECTS A VEHICLE ------------- */
+        tb_blue_south = 1; #10;
 
         // IF Blue Street is red and Purple Street is green when Blue Street South detects a vehicle,
-        // Blue Street South detection test is successful
+        // then Blue Street South detection test is successful
         if (tb_blue_green == 1'b0 && tb_blue_yellow == 1'b0 && tb_blue_red == 1'b1 &&
             tb_purple_green == 1'b1 && tb_purple_yellow == 1'b0 && tb_purple_red == 1'b0)
             
-            $display("TEST 3.2 PASSED: Blue Street South sensor detected a vehicle and did not trigger a transition.");
+            $display("TEST 3.1B PASSED: Blue Street South sensor detected a vehicle and did not trigger a transition.");
 
         // OTHERWISE, Blue Street South detection test is unsuccessful
         else
-            $display("TEST 3.2 FAILED: Unexpected traffic light outputs during Blue Street South detection.");
+            $display("TEST 3.1B FAILED: Unexpected traffic light outputs during Blue Street South detection.");
 
         // remove the waiting vehicle before waiting threshold is reached
         tb_blue_south = 0;
 
-        // give the clock time to begin test 3.3
+        // give the clock time to begin test 3.2A
         #100;
         
-        /* ------------- TEST 3.3: PURPLE STREET EAST SENSOR DETECTS A VEHICLE -------------- */
-        tb_purple_east = 1;
+        /* ------------ TEST 3.2A: PURPLE STREET EAST SENSOR DETECTS A VEHICLE -------------- */
+        tb_purple_east = 1; #10;
 
         // IF Blue Street is green and Purple Street is red when Purple Street East detects a vehicle,
-        // Purple Street East detection test is successful
-        /*if (tb_blue_green == 1'b1 && tb_blue_yellow == 1'b0 && tb_blue_red == 1'b0 &&
-            tb_purple_green == 1'b0 && tb_purple_yellow == 1'b0 && tb_purple_red == 1'b1)
-            
-            $display("TEST 3 PASSED: Brief vehicle detection did not trigger a transition.");
-
-        // OTHERWISE, Purple Street East detection test is unsuccessful
-        else
-            $display("TEST 3 FAILED: Brief vehicle detection triggered an unexpected transition.");*/
-
-        // IF Blue Street is green and Purple Street is red when Purple Street East detects a vehicle,
-        // Purple Street East detection test is successful
+        // then Purple Street East detection test is successful
         if (tb_blue_green == 1'b1 && tb_blue_yellow == 1'b0 && tb_blue_red == 1'b0 &&
             tb_purple_green == 1'b0 && tb_purple_yellow == 1'b0 && tb_purple_red == 1'b1)
             
-            $display("TEST 3.3 PASSED: Purple Street East sensor detected a vehicle and did not trigger a transition.");
+            $display("TEST 3.2A PASSED: Purple Street East sensor detected a vehicle and did not trigger a transition.");
 
         // OTHERWISE, Purple Street East detection test is unsuccessful
         else
-            $display("TEST 3.3 FAILED: Unexpected traffic light outputs during Purple Street East detection.");
+            $display("TEST 3.2A FAILED: Unexpected traffic light outputs during Purple Street East detection.");
 
         // remove the waiting vehicle before waiting threshold is reached
         tb_purple_east = 0;
 
-        // give the clock time to begin test 3.3
+        // give the clock time to begin test 3.2B
         #100;
         
-        /* ------------- TEST 3.4: PURPLE STREET WEST SENSOR DETECTS A VEHICLE -------------- */
-        tb_purple_west = 1;
+        /* ------------ TEST 3.2B: PURPLE STREET WEST SENSOR DETECTS A VEHICLE -------------- */
+        tb_purple_west = 1; #10;
 
         // IF Blue Street is green and Purple Street is red when Purple Street West detects a vehicle,
-        // Purple Street West detection test is successful
+        // then Purple Street West detection test is successful
         if (tb_blue_green == 1'b1 && tb_blue_yellow == 1'b0 && tb_blue_red == 1'b0 &&
             tb_purple_green == 1'b0 && tb_purple_yellow == 1'b0 && tb_purple_red == 1'b1)
             
-            $display("TEST 3.4 PASSED: Purple Street West sensor detected a vehicle and did not trigger a transition.");
+            $display("TEST 3.2B PASSED: Purple Street West sensor detected a vehicle and did not trigger a transition.");
 
         // OTHERWISE, Purple Street West detection test is unsuccessful
         else
-            $display("TEST 3.4 FAILED: Unexpected traffic light outputs during Purple Street West detection.");
+            $display("TEST 3.2B FAILED: Unexpected traffic light outputs during Purple Street West detection.");
 
         // remove the waiting vehicle before waiting threshold is reached
         tb_purple_west = 0;
         
         /******************* TEST 4: VEHICLE DETECTION AT WAITING THRESHOLD ***********************/
 
-        // give the clock time to operate
-        #100;
-
+        /* ---------------- TEST 4.1A: BLUE STREET NORTH WAITING THRESHOLD ------------------ */
         
+        // allow time for Purple Street to become green
+        #100;
+        
+        // activate Blue Street North sensor
+        tb_blue_north = 1;
+        
+        // wait until the 10-second threshold is reached (1,000,000,000 cycles)
+        #10000000000;
+        
+        // IF Purple Street turns yellow after Blue Street waiting threshold has been reached,
+        // then Blue Street North sensor transition test is successful
+        if (tb_blue_green == 1'b0 && tb_blue_yellow == 1'b0 && tb_blue_red == 1'b1 &&
+            tb_purple_green == 1'b0 && tb_purple_yellow == 1'b1 && tb_purple_red == 1'b0)
+            
+            $display("TEST 4.1A PASSED: Blue Street North detection triggered the transition from PURPLE_GREEN to PURPLE_YELLOW.");
+        else
+            $display("TEST 4.1A FAILED: Blue Street North detection did not trigger the transition from PURPLE_GREEN to PURPLE_YELLOW.");
+        
+        // remove the waiting vehicle
+        tb_blue_north = 0;
+        
+        /* ---------------- TEST 4.1B: BLUE STREET SOUTH WAITING THRESHOLD ------------------ */
+
+        // allow time for Purple Street to become green
+        #100;
+        
+        // activate Blue Street South sensor
+        tb_blue_south = 1;
+        
+        // wait until the 10-second threshold is reached (1,000,000,000 cycles)
+        #10000000000;
+        
+        // IF Purple Street turns yellow after Blue Street waiting threshold has been reached,
+        // then Blue Street South sensor transition test is successful
+        if (tb_blue_green == 1'b0 && tb_blue_yellow == 1'b0 && tb_blue_red == 1'b1 &&
+            tb_purple_green == 1'b0 && tb_purple_yellow == 1'b1 && tb_purple_red == 1'b0)
+            
+            $display("TEST 4.1B PASSED: Blue Street South detection triggered the transition from PURPLE_GREEN to PURPLE_YELLOW.");
+        else
+            $display("TEST 4.1B FAILED: Blue Street South detection did not trigger the transition from PURPLE_GREEN to PURPLE_YELLOW.");
+        
+        // remove the waiting vehicle
+        tb_blue_south = 0;
+        
+        /* ---------------- TEST 4.2A: PURPLE STREET EAST WAITING THRESHOLD ----------------- */
+        
+        // allow time for Blue Street to become green
+        #100;
+        
+        // activate Purple Street East sensor
+        tb_purple_east = 1;
+        
+        // wait until the 10-second threshold is reached (1,000,000,000 cycles)
+        #10000000000;
+        
+        // IF Blue Street turns yellow after Purple Street waiting threshold has been reached,
+        // then Purple Street East sensor transition test is successful
+        if (tb_blue_green == 1'b0 && tb_blue_yellow == 1'b1 && tb_blue_red == 1'b0 &&
+            tb_purple_green == 1'b0 && tb_purple_yellow == 1'b0 && tb_purple_red == 1'b1)
+            
+            $display("TEST 4.2A PASSED: Purple Street East detection triggered the transition from BLUE_GREEN to BLUE_YELLOW.");
+        else
+            $display("TEST 4.2A FAILED: Purple Street East detection did not trigger the transition from BLUE_GREEN to BLUE_YELLOW.");
+        
+        // remove the waiting vehicle
+        tb_purple_east = 0;
+
+        /* ---------------- TEST 4.2B: PURPLE STREET WEST WAITING THRESHOLD ----------------- */
+        
+        // allow time for Blue Street to become green
+        #100;
+        
+        // activate Purple Street West sensor
+        tb_purple_west = 1;
+        
+        // wait until the 10-second threshold is reached (1,000,000,000 cycles)
+        #10000000000;
+        
+        // IF Blue Street turns yellow after Purple Street waiting threshold has been reached,
+        // then Purple Street West sensor transition test is successful
+        if (tb_blue_green == 1'b0 && tb_blue_yellow == 1'b1 && tb_blue_red == 1'b0 &&
+            tb_purple_green == 1'b0 && tb_purple_yellow == 1'b0 && tb_purple_red == 1'b1)
+            
+            $display("TEST 4.2B PASSED: Purple Street West detection triggered the transition from BLUE_GREEN to BLUE_YELLOW.");
+        else
+            $display("TEST 4.2B FAILED: Purple Street West detection did not trigger the transition from BLUE_GREEN to BLUE_YELLOW.");
+        
+        // remove the waiting vehicle
+        tb_purple_west = 0;
+                
         /**************** TEST 5: VEHICLE DETECTION INTERRUPTION & TIMER RESET ********************/
 
         // give the clock time to operate
@@ -225,8 +302,7 @@ module verilog_controller_tb();
 
         
         /************************************* END SIMULATION *************************************/
-        #100;
-        $finish;
+        #100; $finish;
     end
 
     // 4. INITIALIZE INPUTS AND APPLY RESET
