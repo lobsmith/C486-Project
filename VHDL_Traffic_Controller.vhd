@@ -69,6 +69,10 @@ architecture Behavioral of traffic_controller is
     signal blue_green_count   : UNSIGNED(5 downto 0);       -- internal green timer register for Blue Street - 6 bits
     signal purple_green_count : UNSIGNED(5 downto 0);       -- internal green timer register for Purple Street - 6 bits
 
+    -- define signals indicating when each green timer expires
+    signal blue_green_timer_done   : STD_LOGIC;
+    signal purple_green_timer_done : STD_LOGIC;
+
 begin
     
     -------------------------------------------------------------------------------------------------------------
@@ -117,7 +121,8 @@ begin
                 -- IF one-second tick occurs
                 if one_second_tick = '1' then
                     -- IF count has reached the 3-second limit
-                    if yellow_count = to_unsigned(STATE_YELLOW_MAX, yellow_count'length) then yellow_count <= (others => '0');    -- reset counter to 0
+                    if yellow_count = to_unsigned(YELLOW_MAX, yellow_count'length) then
+                        yellow_count <= (others => '0');    -- reset counter to 0
                     
                     -- IF count has NOT reached the 3-second limit
                     else yellow_count <= yellow_count + 1;                -- add one second to the counter and continue
@@ -129,6 +134,47 @@ begin
         end if;
     end process;
 
+    -------------------------- ALL-RED TIMER --------------------------
+    
+    -- implement sequential all-red timing logic (count by one-second intervals)
+    process(clk, reset) begin
+        -- IF reset has been activated
+        if reset = '1' then
+            all_red_count <= (others => '0');        -- reset counter to 0
+
+        -- IF clock is on rising edge and reset is not activated
+        elsif rising_edge(clk) then
+            -- IF the machine is currently in an all-red state
+            if (current_state = STATE_ALL_RED_TO_BLUE) or (current_state = STATE_ALL_RED_TO_PURPLE) then
+                -- IF one-second tick occurs
+                if one_second_tick = '1' then
+                    -- IF count has reached the 2-second limit
+                    if all_red_count = to_unsigned(ALL_RED_MAX, all_red_count'length) then
+                        all_red_count <= (others => '0');    -- reset counter to 0
+                    
+                    -- IF count has NOT reached the 2-second limit
+                    else all_red_count <= all_red_count + 1;                -- add one second to the counter and continue
+                    end if;
+                end if;
+            -- IF the machine is NOT in an all-red state
+            else all_red_count <= (others => '0');                                        -- reset counter to 0
+            end if;
+        end if;
+    end process;
+
+   -------------------------- GREEN TIMERS ---------------------------
+                                                   
+    -- blue/green timers
+    blue_green_timer_done <= '1' when
+        (current_state = STATE_BLUE_GREEN) and
+        (blue_green_count >= to_unsigned(GREEN_MAX, blue_green_count'length))
+        else '0';
+
+    purple_green_timer_done <= '1' when
+        (current_state = STATE_PURPLE_GREEN) and
+        (purple_green_count >= to_unsigned(GREEN_MAX, purple_green_count'length))
+        else '0';
+
 end Behavioral;
 
 --------------------------------------------------- END OF VHDL CODE ---------------------------------------------------
@@ -136,37 +182,6 @@ end Behavioral;
     -------------------------------------------------------------------------------------------------------------
     ----------------------------------------- 3. TRAFFIC LIGHT TIMING -------------------------------------------
     -------------------------------------------------------------------------------------------------------------
-
-    -------------------------- ALL-RED TIMER --------------------------
-    
-    -- implement sequential all-red timing logic (count by one-second intervals)
-    always @(posedge clk or posedge reset) begin
-        -- IF reset has been activated
-        if (reset) all_red_count <= 2'd0;                                  -- reset counter to 0
-
-        -- IF the machine is currently in an all-red state
-        else if ((current_state == ALL_RED_TO_BLUE) || (current_state == ALL_RED_TO_PURPLE)) begin
-            -- IF one-second tick occurs
-            if (one_second_tick) begin
-                -- IF count has reached the 2-second limit
-                if (all_red_count == ALL_RED_MAX) all_red_count <= 2'd0;   -- reset counter to 0
-                
-                -- IF count has NOT reached the 2-second limit
-                else all_red_count <= all_red_count + 1'b1;                -- add one second to the counter and continue
-            end
-        end
-
-        -- IF the machine is NOT in an all-red state
-        else all_red_count <= 2'd0;                                        -- reset counter to 0
-    end
-
-    ------------------------ GREEN LIGHT TIMER ------------------------
-    
-    -- define signals indicating when each green timer expires
-    wire blue_green_timer_done;
-    wire purple_green_timer_done;
-    assign blue_green_timer_done = (current_state == BLUE_GREEN) && (blue_green_count >= GREEN_MAX);
-    assign purple_green_timer_done = (current_state == PURPLE_GREEN) && (purple_green_count >= GREEN_MAX);
 
     -- implement sequential green light timing logic for Blue Street (count by one-second intervals)
     always @(posedge clk or posedge reset) begin
