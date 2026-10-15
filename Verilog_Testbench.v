@@ -304,22 +304,4 @@ module verilog_controller_tb();
         /************************************* END SIMULATION *************************************/
         #100; $finish;
     end
-
-    // 4. INITIALIZE INPUTS AND APPLY RESET
-
-    // 5. TEST INITIAL FSM STATE
-
-    // 6. TEST NORMAL OPERATION WITH NO VEHICLES
-
-    // 7. TEST VEHICLE DETECTION BELOW WAITING THRESHOLD
-
-    // 8. TEST VEHICLE DETECTION AT WAITING THRESHOLD
-
-    // 9. TEST VEHICLE DETECTION INTERRUPTION AND TIMER RESET
-
-    // 10. TEST VEHICLES DETECTED ON BOTH STREETS
-
-    // 11. TEST FSM TRANSITIONS AND ALL-RED INTERVALS
-
-    // 12. END SIMULATION
 endmodule
