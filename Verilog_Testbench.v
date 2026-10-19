@@ -284,10 +284,39 @@ module verilog_controller_tb();
         tb_purple_west = 0;
                 
         /**************** TEST 5: VEHICLE DETECTION INTERRUPTION & TIMER RESET ********************/
+        
+        /* ------------------ TEST 5.1: BLUE NORTH DETECTION INTERRUPTION ------------------- */
 
         // give the clock time to operate
         #100;
 
+        // activate Blue Street North sensor
+        tb_blue_north = 1;
+        
+        // wait until the waiting counter has accumulated some time
+        wait (uut.blue_waiting_count >= 2);
+        
+        // confirm the counter has accumulated time
+        if (uut.blue_waiting_count >= 2)
+            $display("TEST 5.1A PASSED: Blue North waiting counter accumulated time.");
+        else
+            $display("TEST 5.1A FAILED: Blue North waiting counter did not accumulate time.");
+        
+        // Interrupt vehicle detection
+        tb_blue_north = 0;
+        
+        // allow the next clock edge to process the sensor change
+        @(posedge tb_clk);
+        #1;
+        
+        // Verify the waiting counter has reset to zero
+        if (uut.blue_waiting_count == 0)
+            $display("TEST 5.1B PASSED: Blue North detection interruption reset the waiting counter.");
+        else
+            $display("TEST 5.1B FAILED: Blue North waiting counter did not reset.");
+        
+        // Allow time for the next test
+        #100;
         
         /********************** TEST 6: VEHICLES DETECTED ON BOTH STREETS *************************/
 
