@@ -164,13 +164,13 @@ begin
 
    ----------------------- GREEN LIGHT TIMER ------------------------
                                                    
-    -- blue/green timer
+   -- define signal indicating when Blue Street green timer expires
     blue_green_timer_done <= '1' when
         (current_state = STATE_BLUE_GREEN) and
         (blue_green_count >= to_unsigned(GREEN_MAX, blue_green_count'length))
         else '0';
 
-    -- purple/green timer
+    -- define signal indicating when Purple Street green timer expires
     purple_green_timer_done <= '1' when
         (current_state = STATE_PURPLE_GREEN) and
         (purple_green_count >= to_unsigned(GREEN_MAX, purple_green_count'length))
@@ -225,6 +225,32 @@ begin
             end if;
         end if;
     end process;
+
+    -------------------------------------------------------------------------------------------------------------
+    ---------------------------------------- 4. SENSOR AND WAITING LOGIC ----------------------------------------
+    -------------------------------------------------------------------------------------------------------------
+    
+    -------------------------- SENSOR DETECTION --------------------------
+    
+    -- determine whether Blue Street has vehicle detection from either direction
+    wire blue_vehicle_detected;
+    assign blue_vehicle_detected = blue_sensor_north || blue_sensor_south;
+    
+    -- determine whether Purple Street has vehicle detection from either direction
+    wire purple_vehicle_detected;
+    assign purple_vehicle_detected = purple_sensor_east || purple_sensor_west;
+    
+    -------------------------- SENSOR RELEVANCE --------------------------
+    
+    -- define Blue Street waiting condition (vehicle detected while Purple Street is green)
+    wire blue_waiting_condition;
+    assign blue_waiting_condition = blue_vehicle_detected && (current_state == PURPLE_GREEN);
+
+    -- define Purple Street waiting condition (vehicle detected while Blue Street is green)
+    wire purple_waiting_condition;
+    assign purple_waiting_condition = purple_vehicle_detected && (current_state == BLUE_GREEN);
+
+    --
 
 end Behavioral;
 
