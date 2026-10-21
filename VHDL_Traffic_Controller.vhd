@@ -73,6 +73,10 @@ architecture Behavioral of traffic_controller is
     signal blue_green_timer_done   : STD_LOGIC;
     signal purple_green_timer_done : STD_LOGIC;
 
+    -- define signals indicating vehicle detection
+    signal blue_vehicle_detected   : STD_LOGIC;
+    signal purple_vehicle_detected : STD_LOGIC;
+    
 begin
     
     -------------------------------------------------------------------------------------------------------------
@@ -233,113 +237,97 @@ begin
     -------------------------- SENSOR DETECTION --------------------------
     
     -- determine whether Blue Street has vehicle detection from either direction
-    wire blue_vehicle_detected;
-    assign blue_vehicle_detected = blue_sensor_north || blue_sensor_south;
+    blue_vehicle_detected <= blue_sensor_north or blue_sensor_south;
     
     -- determine whether Purple Street has vehicle detection from either direction
-    wire purple_vehicle_detected;
-    assign purple_vehicle_detected = purple_sensor_east || purple_sensor_west;
+    purple_vehicle_detected = purple_sensor_east or purple_sensor_west;
     
     -------------------------- SENSOR RELEVANCE --------------------------
     
     -- define Blue Street waiting condition (vehicle detected while Purple Street is green)
-    wire blue_waiting_condition;
-    assign blue_waiting_condition = blue_vehicle_detected && (current_state == PURPLE_GREEN);
+    blue_waiting_condition <= '1' when
+        (blue_vehicle_detected = '1') and
+        (current_state = STATE_PURPLE_GREEN)
+        else '0';
 
     -- define Purple Street waiting condition (vehicle detected while Blue Street is green)
-    wire purple_waiting_condition;
-    assign purple_waiting_condition = purple_vehicle_detected && (current_state == BLUE_GREEN);
-
-    --
-
-end Behavioral;
-
---------------------------------------------------- END OF VHDL CODE ---------------------------------------------------
-
-    -------------------------------------------------------------------------------------------------------------
-    ---------------------------------------- 4. SENSOR AND WAITING LOGIC ----------------------------------------
-    -------------------------------------------------------------------------------------------------------------
-    
-    -------------------------- SENSOR DETECTION --------------------------
-    
-    -- determine whether Blue Street has vehicle detection from either direction
-    wire blue_vehicle_detected;
-    assign blue_vehicle_detected = blue_sensor_north || blue_sensor_south;
-    
-    -- determine whether Purple Street has vehicle detection from either direction
-    wire purple_vehicle_detected;
-    assign purple_vehicle_detected = purple_sensor_east || purple_sensor_west;
-    
-    -------------------------- SENSOR RELEVANCE --------------------------
-    
-    -- define Blue Street waiting condition (vehicle detected while Purple Street is green)
-    wire blue_waiting_condition;
-    assign blue_waiting_condition = blue_vehicle_detected && (current_state == PURPLE_GREEN);
-
-    -- define Purple Street waiting condition (vehicle detected while Blue Street is green)
-    wire purple_waiting_condition;
-    assign purple_waiting_condition = purple_vehicle_detected && (current_state == BLUE_GREEN);
+    purple_waiting_condition <= '1' when
+        (purple_vehicle_detected = '1') and
+        (current_state = STATE_BLUE_GREEN)
+        else '0';
 
     ------------------------- BLUE WAITING TIMER -------------------------
     
     -- define the 10-second Blue waiting limit using 4 bits
-    parameter BLUE_WAITING_MAX = 4'd10;
-
-    -- define internal blue waiting timer register (4-bit register)
-    reg [3:0] blue_waiting_count;
-
-    -- implement sequential blue waiting timing logic (count by one-second intervals)
-    always @(posedge clk or posedge reset) begin
-        -- IF reset has been activated
-        if (reset) blue_waiting_count <= 4'd0;                          -- reset counter to 0
-
-        -- IF the Blue Street waiting condition is active
-        else if (blue_waiting_condition) begin
-            -- IF one-second tick occurs
-            if (one_second_tick) begin
-                -- IF count has NOT reached the 10-second limit
-                if (blue_waiting_count < BLUE_WAITING_MAX)
-                    blue_waiting_count <= blue_waiting_count + 1'b1;    -- add one second to the counter and continue
-                
-                -- once the counter reaches 10 sec, it is not assigned a new value
-                -- therefore, it will remain unchanged until blue_waiting_condition is false
-            end
-        end
-
-        -- IF the Blue Street waiting condition has NOT been met
-        else blue_waiting_count <= 4'd0;                                -- reset counter to 0
-    end
+    constant BLUE_WAITING_MAX : unsigned(3 downto 0) := to_unsigned(10, 4);
     
+    -- define the internal blue waiting timer register (4-bit register)
+    signal blue_waiting_count : unsigned(3 downto 0) := (others => '0');
+    
+    -- implement sequential blue waiting timing logic (count by one-second intervals)
+    process(clk, reset)
+    begin
+        -- IF reset has been activated
+        if reset = '1' then
+            blue_waiting_count <= (others => '0');                                      -- reset counter to 0
+    
+        -- IF the clock is on its rising edge
+        elsif rising_edge(clk) then
+            -- IF the Blue Street waiting condition is active
+            if blue_waiting_condition = '1' then
+                -- IF a one-second tick occurs
+                if one_second_tick = '1' then
+                    -- IF count has NOT reached the 10-second limit
+                    if blue_waiting_count < BLUE_WAITING_MAX then
+                        blue_waiting_count <= blue_waiting_count + 1;                   -- add one second to the counter and continue
+                    end if;
+                    
+                    -- once the counter reaches 10 sec, it is not assigned a new value
+                    -- therefore, it will remain unchanged until purple_waiting_condition is false
+                end if;
+    
+            -- IF the Blue Street waiting condition has NOT been met
+            else blue_waiting_count <= (others => '0');                                 -- reset counter to 0
+            end if;
+        end if;
+    end process;
+
     ------------------------ PURPLE WAITING TIMER ------------------------
     
     -- define the 10-second Purple waiting limit using 4 bits
-    parameter PURPLE_WAITING_MAX = 4'd10;
-
-    -- define internal Purple waiting timer register (4-bit register)
-    reg [3:0] purple_waiting_count;
-
-    -- implement sequential Purple waiting timing logic (count by one-second intervals)
-    always @(posedge clk or posedge reset) begin
-        -- IF reset has been activated
-        if (reset) purple_waiting_count <= 4'd0;                          -- reset counter to 0
-
-        -- IF the Purple Street waiting condition is active
-        else if (purple_waiting_condition) begin
-            -- IF one-second tick occurs
-            if (one_second_tick) begin
-                -- IF count has NOT reached the 10-second limit
-                if (purple_waiting_count < PURPLE_WAITING_MAX)
-                    purple_waiting_count <= purple_waiting_count + 1'b1;  -- add one second to the counter and continue
-                
-                -- once the counter reaches 10 sec, it is not assigned a new value
-                -- therefore, it will remain unchanged until purple_waiting_condition is false
-            end
-        end
-
-        -- IF the Purple Street waiting condition has NOT been met
-        else purple_waiting_count <= 4'd0;                                -- reset counter to 0
-    end
+    constant PURPLE_WAITING_MAX : unsigned(3 downto 0) := to_unsigned(10, 4);
     
+    -- define the internal purple waiting timer register (4-bit register)
+    signal purple_waiting_count : unsigned(3 downto 0) := (others => '0');
+    
+    -- implement sequential purple waiting timing logic (count by one-second intervals)
+    process(clk, reset)
+    begin
+        -- IF reset has been activated
+        if reset = '1' then
+            purple_waiting_count <= (others => '0');                                    -- reset counter to 0
+    
+        -- IF the clock is on its rising edge
+        elsif rising_edge(clk) then
+            -- IF the Purple Street waiting condition is active
+            if purple_waiting_condition = '1' then
+                -- IF a one-second tick occurs
+                if one_second_tick = '1' then
+                    -- IF count has NOT reached the 10-second limit
+                    if purple_waiting_count < PURPLE_WAITING_MAX then
+                        purple_waiting_count <= purple_waiting_count + 1;               -- add one second to the counter and continue
+                    end if;
+                    
+                    -- once the counter reaches 10 sec, it is not assigned a new value
+                    -- therefore, it will remain unchanged until blue_waiting_condition is false
+                end if;
+    
+            -- IF the Purple Street waiting condition has NOT been met
+            else purple_waiting_count <= (others => '0');                               -- reset counter to 0
+            end if;
+        end if;
+    end process;
+
     ------------------------ CONTINUOUS DETECTION ------------------------
     
     -- Maintain continuous Blue Street detection while Purple Street is GREEN.
@@ -347,6 +335,10 @@ end Behavioral;
     
     -- Maintain continuous Purple Street detection while Blue Street is GREEN.
     -- Reset Purple waiting timer if the Purple waiting condition is interrupted.
+    
+end Behavioral;
+
+--------------------------------------------------- END OF VHDL CODE ---------------------------------------------------
 
     -------------------------------------------------------------------------------------------------------------
     ------------------------------------------ 5. FSM NEXT-STATE LOGIC ------------------------------------------
