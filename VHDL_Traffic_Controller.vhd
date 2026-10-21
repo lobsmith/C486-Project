@@ -153,74 +153,83 @@ begin
                         all_red_count <= (others => '0');    -- reset counter to 0
                     
                     -- IF count has NOT reached the 2-second limit
-                    else all_red_count <= all_red_count + 1;                -- add one second to the counter and continue
+                    else all_red_count <= all_red_count + 1;                            -- add one second to the counter and continue
                     end if;
                 end if;
             -- IF the machine is NOT in an all-red state
-            else all_red_count <= (others => '0');                                        -- reset counter to 0
+            else all_red_count <= (others => '0');                                      -- reset counter to 0
             end if;
         end if;
     end process;
 
-   -------------------------- GREEN TIMERS ---------------------------
+   ----------------------- GREEN LIGHT TIMER ------------------------
                                                    
-    -- blue/green timers
+    -- blue/green timer
     blue_green_timer_done <= '1' when
         (current_state = STATE_BLUE_GREEN) and
         (blue_green_count >= to_unsigned(GREEN_MAX, blue_green_count'length))
         else '0';
 
+    -- purple/green timer
     purple_green_timer_done <= '1' when
         (current_state = STATE_PURPLE_GREEN) and
         (purple_green_count >= to_unsigned(GREEN_MAX, purple_green_count'length))
         else '0';
 
+    -- implement sequential green light timing logic for Blue Street (count by one-second intervals)
+    process(clk, reset)
+    begin
+        -- IF reset has been activated
+        if reset = '1' then
+            blue_green_count <= (others => '0');                                        -- reset counter to 0
+    
+        -- IF clock is on rising edge and reset is not activated
+        elsif rising_edge(clk) then
+            -- If Blue Street is currently in the green state
+            if current_state = STATE_BLUE_GREEN then
+                -- IF a one-second tick occurs
+                if one_second_tick = '1' then
+                    -- IF count has NOT reached the 30-second limit
+                    if blue_green_count < to_unsigned(GREEN_MAX, blue_green_count'length) then
+                        blue_green_count <= blue_green_count + 1;                       -- add one second to the counter and continue
+                    end if;
+                end if;
+    
+            -- IF Blue Street is NOT in the green state
+            else blue_green_count <= (others => '0');                                   -- reset counter to 0
+            end if;
+        end if;
+    end process;
+
+    -- implement sequential green light timing logic for Purple Street (count by one-second intervals)
+    process(clk, reset)
+    begin
+        -- IF reset has been activated
+        if reset = '1' then
+            purple_green_count <= (others => '0');                                      -- reset counter to 0
+    
+        -- IF clock is on rising edge and reset is not activated
+        elsif rising_edge(clk) then
+            -- If Purple Street is currently in the green state
+            if current_state = STATE_PURPLE_GREEN then
+                -- IF a one-second tick occurs
+                if one_second_tick = '1' then
+                    -- IF count has NOT reached the 30-second limit
+                    if purple_green_count < to_unsigned(GREEN_MAX, purple_green_count'length) then
+                        purple_green_count <= purple_green_count + 1;                   -- add one second to the counter and continue
+                    end if;
+                end if;
+    
+            -- IF Purple Street is NOT in the green state
+            else purple_green_count <= (others => '0');                                 -- reset counter to 0
+            end if;
+        end if;
+    end process;
+
 end Behavioral;
 
 --------------------------------------------------- END OF VHDL CODE ---------------------------------------------------
 
-    -------------------------------------------------------------------------------------------------------------
-    ----------------------------------------- 3. TRAFFIC LIGHT TIMING -------------------------------------------
-    -------------------------------------------------------------------------------------------------------------
-
-    -- implement sequential green light timing logic for Blue Street (count by one-second intervals)
-    always @(posedge clk or posedge reset) begin
-        -- IF reset has been activated
-        if (reset) blue_green_count <= 6'd0;                          -- reset counter to 0
-
-        -- IF Blue Street is currently in the green state
-        else if (current_state == BLUE_GREEN) begin
-            -- IF one-second tick occurs
-            if (one_second_tick) begin
-                -- IF count has NOT reached the 30-second limit
-                if (blue_green_count < GREEN_MAX)
-                    blue_green_count <= blue_green_count + 1'b1;      -- add one second to the counter and continue
-            end
-        end
-
-        -- IF Blue Street is NOT in the green state
-        else blue_green_count <= 6'd0;                                -- reset counter to 0
-    end
-
-    -- implement sequential green light timing logic for Purple Street (count by one-second intervals)
-    always @(posedge clk or posedge reset) begin
-        -- IF reset has been activated
-        if (reset) purple_green_count <= 6'd0;                        -- reset counter to 0
-        
-        -- IF Purple Street is currently in the green state
-        else if (current_state == PURPLE_GREEN) begin
-            -- IF one-second tick occurs
-            if (one_second_tick) begin
-                -- IF count has NOT reached the 30-second limit
-                if (purple_green_count < GREEN_MAX)
-                    purple_green_count <= purple_green_count + 1'b1;  -- add one second to the counter and continue
-            end
-        end
-        
-        -- IF Purple Street is NOT in the green state
-        else purple_green_count <= 6'd0;                              -- reset counter to 0
-    end
-    
     -------------------------------------------------------------------------------------------------------------
     ---------------------------------------- 4. SENSOR AND WAITING LOGIC ----------------------------------------
     -------------------------------------------------------------------------------------------------------------
