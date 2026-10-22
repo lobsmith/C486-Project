@@ -4,8 +4,6 @@ library IEEE;                                    -- declare standard VHDL librar
 use IEEE.STD_LOGIC_1164.ALL;                     -- import digital logic (STD_LOGIC_VECTOR)
 use IEEE.NUMERIC_STD.ALL;                        -- import standard numeric types and arithmetic operations (unsigned, signed)
 
--- `timescale 1ns / 1ps
-
 -------------------------------------------------------------------------------------------------------------
 ---------------------------------------- 1. ENTITY DECLARATION & I/O ----------------------------------------
 -------------------------------------------------------------------------------------------------------------
@@ -50,32 +48,40 @@ architecture Behavioral of traffic_controller is
     constant STATE_PURPLE_GREEN      : STD_LOGIC_VECTOR(2 downto 0) := "100";
     constant STATE_PURPLE_YELLOW     : STD_LOGIC_VECTOR(2 downto 0) := "101";
 
-    -- define state registers (3 bits wide for 6 states)
-    signal current_state      : STD_LOGIC_VECTOR(2 downto 0);
-    signal next_state         : STD_LOGIC_VECTOR(2 downto 0);
-
     -- Basys 3 runs on 100MHz clock (100 million cycles per second)
     -- define timing limits
-    constant CLOCK_MAX        : INTEGER := 100000000;       -- 100,000,000 clock cycle limit - 27 bits
-    constant YELLOW_MAX       : INTEGER := 3;               -- 3-second yellow light limit - 2 bits
-    constant ALL_RED_MAX      : INTEGER := 2;               -- 2-second all-red limit - 2 bits
-    constant GREEN_MAX        : INTEGER := 30;              -- 30-second all-green limit - 6 bits
+    constant CLOCK_MAX          : INTEGER := 100000000;                         -- 100,000,000 clock cycle limit - 27 bits
+    constant YELLOW_MAX         : INTEGER := 3;                                 -- 3-second yellow light limit - 2 bits
+    constant ALL_RED_MAX        : INTEGER := 2;                                 -- 2-second all-red limit - 2 bits
+    constant GREEN_MAX          : INTEGER := 30;                                -- 30-second all-green limit - 6 bits
+    constant BLUE_WAITING_MAX   : UNSIGNED(3 downto 0) := to_unsigned(10, 4);   -- 10-second Blue waiting limit - 4 bits
+    constant PURPLE_WAITING_MAX : UNSIGNED(3 downto 0) := to_unsigned(10, 4);   -- 10-second Purple waiting limit - 4 bits
+
+    -- define state registers (3 bits wide for 6 states)
+    signal current_state        : STD_LOGIC_VECTOR(2 downto 0);
+    signal next_state           : STD_LOGIC_VECTOR(2 downto 0);
 
     -- define internal timing registers
-    signal count              : UNSIGNED(26 downto 0);      -- internal timing register - 27 bits
-    signal one_second_tick    : STD_LOGIC;                  -- one-second timing tick - 1 bit
-    signal yellow_count       : UNSIGNED(1 downto 0);       -- internal yellow light timer register - 2 bits
-    signal all_red_count      : UNSIGNED(1 downto 0);       -- internal all-red timer register - 2 bits
-    signal blue_green_count   : UNSIGNED(5 downto 0);       -- internal green timer register for Blue Street - 6 bits
-    signal purple_green_count : UNSIGNED(5 downto 0);       -- internal green timer register for Purple Street - 6 bits
+    signal count                : UNSIGNED(26 downto 0);                        -- internal timing register - 27 bits
+    signal one_second_tick      : STD_LOGIC;                                    -- one-second timing tick - 1 bit
+    signal yellow_count         : UNSIGNED(1 downto 0);                         -- internal yellow light timer register - 2 bits
+    signal all_red_count        : UNSIGNED(1 downto 0);                         -- internal all-red timer register - 2 bits
+    signal blue_green_count     : UNSIGNED(5 downto 0);                         -- internal green timer register for Blue Street - 6 bits
+    signal purple_green_count   : UNSIGNED(5 downto 0);                         -- internal green timer register for Purple Street - 6 bits
+    signal blue_waiting_count   : UNSIGNED(3 downto 0) := (others => '0');      -- internal blue waiting timer register - 4 bits
+    signal purple_waiting_count : UNSIGNED(3 downto 0) := (others => '0');      -- internal purple waiting timer register - 4 bits
+
+    -- define signals indicating sensor waiting conditions
+    signal blue_waiting_condition   : STD_LOGIC;
+    signal purple_waiting_condition : STD_LOGIC;
 
     -- define signals indicating when each green timer expires
-    signal blue_green_timer_done   : STD_LOGIC;
-    signal purple_green_timer_done : STD_LOGIC;
+    signal blue_green_timer_done    : STD_LOGIC;
+    signal purple_green_timer_done  : STD_LOGIC;
 
     -- define signals indicating vehicle detection
-    signal blue_vehicle_detected   : STD_LOGIC;
-    signal purple_vehicle_detected : STD_LOGIC;
+    signal blue_vehicle_detected    : STD_LOGIC;
+    signal purple_vehicle_detected  : STD_LOGIC;
     
 begin
     
@@ -98,14 +104,13 @@ begin
             one_second_tick <= '0';
 
             -- IF count has reached the 100MHz limit (count == 99,999,999)
-            if unsigned(count) = CLOCK_MAX - 1 then
+            if count = to_unsigned(CLOCK_MAX - 1, count'length) then
                 count           <= (others => '0');  -- reset counter to 0
                 one_second_tick <= '1';              -- produce one-second tick
-            end
             
             -- IF count has NOT reached the 100MHz limit (count != 99,999,999)
             else
-                count <= std_logic_vector(unsigned(count) + 1);       -- add one cycle to the counter and continue
+                count <= count + 1;                  -- add one cycle to the counter and continue
             end if;
         end if;
     end process;
@@ -130,6 +135,7 @@ begin
                     
                     -- IF count has NOT reached the 3-second limit
                     else yellow_count <= yellow_count + 1;                -- add one second to the counter and continue
+                    end if;
                 end if;
     
             -- IF the machine is NOT in a yellow light state
@@ -240,7 +246,7 @@ begin
     blue_vehicle_detected <= blue_sensor_north or blue_sensor_south;
     
     -- determine whether Purple Street has vehicle detection from either direction
-    purple_vehicle_detected = purple_sensor_east or purple_sensor_west;
+    purple_vehicle_detected <= purple_sensor_east or purple_sensor_west;
     
     -------------------------- SENSOR RELEVANCE --------------------------
     
@@ -257,12 +263,6 @@ begin
         else '0';
 
     ------------------------- BLUE WAITING TIMER -------------------------
-    
-    -- define the 10-second Blue waiting limit using 4 bits
-    constant BLUE_WAITING_MAX : unsigned(3 downto 0) := to_unsigned(10, 4);
-    
-    -- define the internal blue waiting timer register (4-bit register)
-    signal blue_waiting_count : unsigned(3 downto 0) := (others => '0');
     
     -- implement sequential blue waiting timing logic (count by one-second intervals)
     process(clk, reset)
@@ -293,12 +293,6 @@ begin
     end process;
 
     ------------------------ PURPLE WAITING TIMER ------------------------
-    
-    -- define the 10-second Purple waiting limit using 4 bits
-    constant PURPLE_WAITING_MAX : unsigned(3 downto 0) := to_unsigned(10, 4);
-    
-    -- define the internal purple waiting timer register (4-bit register)
-    signal purple_waiting_count : unsigned(3 downto 0) := (others => '0');
     
     -- implement sequential purple waiting timing logic (count by one-second intervals)
     process(clk, reset)
@@ -335,139 +329,145 @@ begin
     
     -- Maintain continuous Purple Street detection while Blue Street is GREEN.
     -- Reset Purple waiting timer if the Purple waiting condition is interrupted.
-    
-end Behavioral;
-
---------------------------------------------------- END OF VHDL CODE ---------------------------------------------------
 
     -------------------------------------------------------------------------------------------------------------
     ------------------------------------------ 5. FSM NEXT-STATE LOGIC ------------------------------------------
     -------------------------------------------------------------------------------------------------------------
 
-    always @(*) begin
+    -- combinational logic determines the next state
+    process(current_state, all_red_count, purple_waiting_count,
+            blue_green_timer_done, yellow_count,
+            blue_waiting_count, purple_green_timer_done)
+    begin
         -- DEFAULT: remain in the current state if no transition occurs
-        next_state = current_state;
+        next_state <= current_state;
 
-        case (current_state)
+        case current_state is
             -- ALL-RED: allow 2 seconds before Blue Street turns green
-            ALL_RED_TO_BLUE: begin
-                if (all_red_count >= ALL_RED_MAX)
-                    next_state = BLUE_GREEN;
-            end
+            when STATE_ALL_RED_TO_BLUE =>
+                if all_red_count >= to_unsigned(ALL_RED_MAX, all_red_count'length) then
+                    next_state <= STATE_BLUE_GREEN;
+                end if;
 
             -- BLUE GREEN: switch when Purple Street has waited 10 seconds
             -- OR Blue Street's 30-second green limit expires
-            BLUE_GREEN: begin
-                if ((purple_waiting_count >= PURPLE_WAITING_MAX) || blue_green_timer_done)
-                    next_state = BLUE_YELLOW;
-            end
+            when STATE_BLUE_GREEN =>
+                if (purple_waiting_count >= PURPLE_WAITING_MAX)
+                    or (blue_green_timer_done = '1') then
+                    next_state <= STATE_BLUE_YELLOW;
+                end if;
 
             -- BLUE YELLOW: allow 3 seconds before ALL-RED
-            BLUE_YELLOW: begin
-                if (yellow_count >= YELLOW_MAX)
-                    next_state = ALL_RED_TO_PURPLE;
-            end
+            when STATE_BLUE_YELLOW =>
+                if yellow_count >= to_unsigned(YELLOW_MAX, yellow_count'length) then
+                    next_state <= STATE_ALL_RED_TO_PURPLE;
+                end if;
             
             -- ALL-RED: allow 2 seconds before Purple Street turns green
-            ALL_RED_TO_PURPLE: begin
-                if (all_red_count >= ALL_RED_MAX)
-                    next_state = PURPLE_GREEN;
-            end
+            when STATE_ALL_RED_TO_PURPLE =>
+                if all_red_count >= to_unsigned(ALL_RED_MAX, all_red_count'length) then
+                    next_state <= STATE_PURPLE_GREEN;
+                end if;
 
             -- PURPLE GREEN: switch when Blue Street has waited 10 seconds
             -- OR Purple Street's 30-second green limit expires
-            PURPLE_GREEN: begin
-                if ((blue_waiting_count >= BLUE_WAITING_MAX) || purple_green_timer_done)
-                    next_state = PURPLE_YELLOW;
-            end
+            when STATE_PURPLE_GREEN =>
+                if (blue_waiting_count >= BLUE_WAITING_MAX)
+                    or (purple_green_timer_done = '1') then
+                    next_state <= STATE_PURPLE_YELLOW;
+                end if;
 
             -- PURPLE YELLOW: allow 3 seconds before ALL-RED
-            PURPLE_YELLOW: begin
-                if (yellow_count >= YELLOW_MAX)
-                    next_state = ALL_RED_TO_BLUE;
-            end
+            when STATE_PURPLE_YELLOW =>
+                if yellow_count >= to_unsigned(YELLOW_MAX, yellow_count'length) then
+                    next_state <= STATE_ALL_RED_TO_BLUE;
+                end if;
 
             -- DEFAULT: start state is ALL_RED_TO_BLUE
-            -- much like C++/Java, Verilog requires a default case
-            default: next_state = ALL_RED_TO_BLUE;
-        endcase
-    end
+            -- much like C++/Java, VHDL requires a default case (others)
+            when others => next_state <= STATE_ALL_RED_TO_BLUE;
+        end case;
+    end process;
 
     -- implement sequential logic that updates current_state on the positive clock edge
-    always @(posedge clk or posedge reset) begin
-        if (reset) current_state <= ALL_RED_TO_BLUE;
-        else       current_state <= next_state;
-    end
-
+    process(clk, reset)
+    begin
+        -- IF reset has been activated
+        if reset = '1' then current_state <= STATE_ALL_RED_TO_BLUE;
+    
+        -- IF reset is not activated, update on the rising clock edge
+        elsif rising_edge(clk) then current_state <= next_state;
+        end if;
+    end process;
+                                                      
     -------------------------------------------------------------------------------------------------------------
     ------------------------------------------- 6. FSM OUTPUT LOGIC ---------------------------------------------
     -------------------------------------------------------------------------------------------------------------
 
     -- set traffic light outputs based on the current state
-    always @(*) begin
+    process(current_state)
+    begin
         -- DEFAULT: all outputs are off
-        blue_green     = 1'b0;
-        blue_yellow    = 1'b0;
-        blue_red       = 1'b0;
-        purple_green   = 1'b0;
-        purple_yellow  = 1'b0;
-        purple_red     = 1'b0;
+        blue_green    <= '0';
+        blue_yellow   <= '0';
+        blue_red      <= '0';
+        purple_green  <= '0';
+        purple_yellow <= '0';
+        purple_red    <= '0';
 
-        case (current_state)
+        case current_state is
             -- ALL_RED_TO_BLUE: Blue Street = RED, Purple Street = RED
-            ALL_RED_TO_BLUE: begin
-                blue_red = 1'b1;
-                purple_red = 1'b1;
-            end
+            when STATE_ALL_RED_TO_BLUE =>
+                blue_red  <= '1';
+                purple_red <= '1';
 
             -- BLUE_GREEN: Blue Street = GREEN, Purple Street = RED
-            BLUE_GREEN: begin
-                blue_green = 1'b1;
-                purple_red = 1'b1;
-            end
+            when STATE_BLUE_GREEN =>
+                blue_green <= '1';
+                purple_red <= '1';
 
             -- BLUE_YELLOW: Blue Street = YELLOW, Purple Street = RED
-            BLUE_YELLOW: begin
-                blue_yellow = 1'b1;
-                purple_red = 1'b1;
-            end
+            when STATE_BLUE_YELLOW =>
+                blue_yellow <= '1';
+                purple_red  <= '1';
 
             -- ALL_RED_TO_PURPLE: Blue Street = RED, Purple Street = RED
-            ALL_RED_TO_PURPLE: begin
-                blue_red = 1'b1;
-                purple_red = 1'b1;
-            end
+            when STATE_ALL_RED_TO_PURPLE =>
+                blue_red   <= '1';
+                purple_red <= '1';
 
             -- PURPLE_GREEN: Blue Street = RED, Purple Street = GREEN
-            PURPLE_GREEN: begin
-                blue_red = 1'b1;
-                purple_green = 1'b1;
-            end
+            when STATE_PURPLE_GREEN =>
+                blue_red     <= '1';
+                purple_green <= '1';
 
             -- PURPLE_YELLOW: Blue Street = RED, Purple Street = YELLOW
-            PURPLE_YELLOW: begin
-                blue_red = 1'b1;
-                purple_yellow = 1'b1;
-            end
+            when STATE_PURPLE_YELLOW =>
+                blue_red      <= '1';
+                purple_yellow <= '1';
 
             -- DEFAULT: Blue Street = RED, Purple Street = RED
-            default: begin
-                blue_red = 1'b1;
-                purple_red = 1'b1;
-            end
-        endcase
-    end
+            when others =>
+                blue_red   <= '1';
+                purple_red <= '1';
+        end case;
+    end process;
 
     -- set waiting indicator outputs based on the current state
-    always @(*) begin
+    process(blue_waiting_condition, purple_waiting_condition)
+    begin
         -- DEFAULT: both waiting indicators are off
-        blue_waiting   = 1'b0;
-        purple_waiting = 1'b0;
-
+        blue_waiting   <= '0';
+        purple_waiting <= '0';
+    
         -- Blue Street waiting
-        if (blue_waiting_condition) blue_waiting = 1'b1;
-
+        if blue_waiting_condition = '1' then
+            blue_waiting <= '1';
+        end if;
+    
         -- Purple Street waiting
-        if (purple_waiting_condition) purple_waiting = 1'b1;
-    end
-endmodule
+        if purple_waiting_condition = '1' then
+            purple_waiting <= '1';
+        end if;
+    end process;
+end Behavioral;
