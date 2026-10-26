@@ -26,7 +26,12 @@ module traffic_controller(
     output reg   purple_yellow,              // BLUE: red;    PURPLE: yellow
     output reg   purple_red,                 // BLUE: red;    PURPLE: red (before transition to BLUE_GREEN)
     output reg   blue_waiting,               // blue waiting indicator
-    output reg   purple_waiting              // purple waiting indicator
+    output reg   purple_waiting,             // purple waiting indicator
+
+    // OUTPUTS: four-digit seven-segment timer display
+    output reg  [6:0] seg,                   // segments A through G
+    output reg  [3:0] an,                    // digit enables
+    output reg        dp                     // decimal point
 );
 
     /***********************************************************************************************************/
@@ -44,6 +49,27 @@ module traffic_controller(
     // define state registers (3 bits wide for 6 states)
     reg [2:0] current_state;
     reg [2:0] next_state;
+
+    /********************* ELAPSED TIMER DISPLAY *********************/
+
+    // elapsed seconds in the current FSM phase
+    reg [5:0] elapsed_seconds;
+
+    // remember the previous FSM state to detect phase changes
+    reg [2:0] previous_state;
+
+    // counter used to refresh the four display digits
+    reg [19:0] refresh_counter;
+
+    // current digit being displayed
+    reg [3:0] display_digit;
+
+    // convert elapsed seconds into decimal digits
+    wire [3:0] elapsed_ones;
+    wire [3:0] elapsed_tens;
+
+    assign elapsed_ones = elapsed_seconds % 10;
+    assign elapsed_tens = (elapsed_seconds / 10) % 10;
 
     /***********************************************************************************************************/
     /**************************************** 3. TRAFFIC LIGHT TIMING ******************************************/
@@ -350,6 +376,66 @@ module traffic_controller(
         else       current_state <= next_state;
     end
 
+    /********************* ELAPSED SECONDS COUNTER *********************/
+
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            elapsed_seconds <= 6'd0;
+            previous_state  <= ALL_RED_TO_BLUE;
+        end
+        else begin
+            // Reset elapsed time when a new phase begins
+            if (current_state != previous_state) begin
+                elapsed_seconds <= 6'd0;
+                previous_state  <= current_state;
+            end
+
+            // Increment once per second, stopping before overflow
+            else if (one_second_tick && elapsed_seconds < 6'd59) begin
+                elapsed_seconds <= elapsed_seconds + 1'b1;
+            end
+        end
+    end
+
+    /********************* DISPLAY REFRESH COUNTER *********************/
+
+    always @(posedge clk or posedge reset) begin
+        if (reset)
+            refresh_counter <= 20'd0;
+        else
+            refresh_counter <= refresh_counter + 1'b1;
+    end
+
+    /********************* DISPLAY DIGIT SELECTION *********************/
+
+    always @(*) begin
+        // DEFAULT: all digits disabled
+        an = 4'b1111;
+        display_digit = 4'd0;
+
+        case (refresh_counter[19:18])
+            2'b00: begin
+                an = 4'b1110;           // rightmost digit
+                display_digit = elapsed_ones;
+            end
+
+            2'b01: begin
+                an = 4'b1101;
+                display_digit = elapsed_tens;
+            end
+
+            2'b10: begin
+                an = 4'b1011;
+                display_digit = 4'd0;
+            end
+
+            2'b11: begin
+                an = 4'b0111;           // leftmost digit
+                display_digit = 4'd0;
+            end
+        endcase
+    end
+
     /***********************************************************************************************************/
     /****************************************** 6. FSM OUTPUT LOGIC ********************************************/
     /***********************************************************************************************************/
@@ -421,4 +507,25 @@ module traffic_controller(
         // Purple Street waiting
         if (purple_waiting_condition) purple_waiting = 1'b1;
     end
+
+    /********************* SEVEN-SEGMENT DECODER *********************/
+
+    always @(*) begin
+        dp = 1'b1;  // decimal point off
+    
+        case (display_digit)
+            4'd0: seg = 7'b1000000;
+            4'd1: seg = 7'b1111001;
+            4'd2: seg = 7'b0100100;
+            4'd3: seg = 7'b0110000;
+            4'd4: seg = 7'b0011001;
+            4'd5: seg = 7'b0010010;
+            4'd6: seg = 7'b0000010;
+            4'd7: seg = 7'b1111000;
+            4'd8: seg = 7'b0000000;
+            4'd9: seg = 7'b0010000;
+            default: seg = 7'b1111111;
+        endcase
+    end
+    
 endmodule
