@@ -29,7 +29,12 @@ entity traffic_controller is
         purple_yellow       : out STD_LOGIC;    -- BLUE: red;    PURPLE: yellow
         purple_red          : out STD_LOGIC;    -- BLUE: red;    PURPLE: red (before transition to BLUE_GREEN)
         blue_waiting        : out STD_LOGIC;    -- blue waiting indicator
-        purple_waiting      : out STD_LOGIC     -- purple waiting indicator
+        purple_waiting      : out STD_LOGIC;    -- purple waiting indicator
+
+        -- OUTPUTS: four-digit seven-segment timer display
+        seg                 : out STD_LOGIC_VECTOR(6 downto 0);
+        an                  : out STD_LOGIC_VECTOR(3 downto 0);
+        dp                  : out STD_LOGIC
     );
 end traffic_controller;
 
@@ -82,6 +87,24 @@ architecture Behavioral of traffic_controller is
     -- define signals indicating vehicle detection
     signal blue_vehicle_detected    : STD_LOGIC;
     signal purple_vehicle_detected  : STD_LOGIC;
+
+    ---------------------- ELAPSED TIMER DISPLAY ----------------------
+
+    -- elapsed seconds in the current FSM phase
+    signal elapsed_seconds : UNSIGNED(5 downto 0);
+
+    -- remember the previous FSM state to detect phase changes
+    signal previous_state : STD_LOGIC_VECTOR(2 downto 0);
+
+    -- counter used to refresh the four display digits
+    signal refresh_counter : UNSIGNED(19 downto 0);
+
+    -- current digit being displayed
+    signal display_digit : UNSIGNED(3 downto 0);
+
+    -- decimal digits for the elapsed-seconds display
+    signal elapsed_ones : UNSIGNED(3 downto 0);
+    signal elapsed_tens : UNSIGNED(3 downto 0);
     
 begin
     
@@ -399,6 +422,75 @@ begin
         elsif rising_edge(clk) then current_state <= next_state;
         end if;
     end process;
+
+   --------------------- ELAPSED SECONDS COUNTER ---------------------
+
+    process(clk, reset)
+    begin
+        if reset = '1' then
+            elapsed_seconds <= (others => '0');
+            previous_state  <= STATE_ALL_RED_TO_BLUE;
+
+        elsif rising_edge(clk) then
+            -- Reset elapsed time when a new phase begins
+            if current_state /= previous_state then
+                elapsed_seconds <= (others => '0');
+                previous_state  <= current_state;
+
+            -- Increment once per second
+            elsif one_second_tick = '1' and elapsed_seconds < 59 then
+                elapsed_seconds <= elapsed_seconds + 1;
+            end if;
+        end if;
+    end process;
+
+    --------------------- DISPLAY REFRESH COUNTER ---------------------
+
+    process(clk, reset)
+    begin
+        if reset = '1' then
+            refresh_counter <= (others => '0');
+
+        elsif rising_edge(clk) then
+            refresh_counter <= refresh_counter + 1;
+        end if;
+    end process;
+
+    -------------------- DECIMAL DIGIT CONVERSION ---------------------
+
+    elapsed_ones <= to_unsigned(to_integer(elapsed_seconds) mod 10, 4);
+    elapsed_tens <= to_unsigned((to_integer(elapsed_seconds) / 10) mod 10, 4);
+
+    --------------------- DISPLAY DIGIT SELECTION ---------------------
+
+    process(refresh_counter, elapsed_ones, elapsed_tens)
+    begin
+        -- DEFAULT: all digits disabled
+        an <= "1111";
+        display_digit <= (others => '0');
+
+        case refresh_counter(19 downto 18) is
+            when "00" =>
+                an <= "1110";  -- rightmost digit
+                display_digit <= elapsed_ones;
+
+            when "01" =>
+                an <= "1101";
+                display_digit <= elapsed_tens;
+
+            when "10" =>
+                an <= "1011";
+                display_digit <= to_unsigned(0, 4);
+
+            when "11" =>
+                an <= "0111";  -- leftmost digit
+                display_digit <= to_unsigned(0, 4);
+
+            when others =>
+                an <= "1111";
+                display_digit <= (others => '0');
+        end case;
+    end process;
                                                       
     -------------------------------------------------------------------------------------------------------------
     ------------------------------------------- 6. FSM OUTPUT LOGIC ---------------------------------------------
@@ -469,5 +561,26 @@ begin
         if purple_waiting_condition = '1' then
             purple_waiting <= '1';
         end if;
+    end process;
+
+    --------------------- SEVEN-SEGMENT DECODER ---------------------
+
+    process(display_digit)
+    begin
+        dp <= '1';  -- Decimal point off
+
+        case to_integer(display_digit) is
+            when 0 => seg <= "1000000";
+            when 1 => seg <= "1111001";
+            when 2 => seg <= "0100100";
+            when 3 => seg <= "0110000";
+            when 4 => seg <= "0011001";
+            when 5 => seg <= "0010010";
+            when 6 => seg <= "0000010";
+            when 7 => seg <= "1111000";
+            when 8 => seg <= "0000000";
+            when 9 => seg <= "0010000";
+            when others => seg <= "1111111";
+        end case;
     end process;
 end Behavioral;
