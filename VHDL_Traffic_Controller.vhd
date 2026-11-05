@@ -10,6 +10,9 @@ use IEEE.NUMERIC_STD.ALL;                        -- import standard numeric type
 
 -- port declaration: define inputs and outputs
 entity traffic_controller is
+    generic (
+        CLOCK_MAX : INTEGER := 100000000        -- 100,000,000 clock cycle limit - 27 bits
+    );
     Port (
         -- INPUTS: clock and reset signals
         clk                 : in  STD_LOGIC;    -- FPGA clock signal
@@ -55,7 +58,6 @@ architecture Behavioral of traffic_controller is
 
     -- Basys 3 runs on 100MHz clock (100 million cycles per second)
     -- define timing limits
-    constant CLOCK_MAX          : INTEGER := 100000000;                         -- 100,000,000 clock cycle limit - 27 bits
     constant YELLOW_MAX         : INTEGER := 3;                                 -- 3-second yellow light limit - 2 bits
     constant ALL_RED_MAX        : INTEGER := 2;                                 -- 2-second all-red limit - 2 bits
     constant GREEN_MAX          : INTEGER := 30;                                -- 30-second all-green limit - 6 bits
