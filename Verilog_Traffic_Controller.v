@@ -28,6 +28,18 @@ module traffic_controller(
     output reg   blue_waiting,               // blue waiting indicator
     output reg   purple_waiting,             // purple waiting indicator
 
+    // OUTPUTS: 4 external Blue breadboard LEDs (bottom row of JB connector)
+    output wire blue_red_external,           // JB(7)  - A15
+    output wire blue_yellow_external,        // JB(8)  - A17
+    output wire blue_green_external,         // JB(9)  - C15
+    output wire blue_waiting_external,       // JB(10) - C16
+    
+    // OUTPUTS: 4 external Purple breadboard LEDs (bottom row of JC connector)v
+    output wire purple_red_external,         // JC(7)  - L17
+    output wire purple_yellow_external,      // JC(8)  - M19
+    output wire purple_green_external,       // JC(9)  - P17
+    output wire purple_waiting_external,     // JC(10) - R18
+
     // OUTPUTS: four-digit seven-segment timer display
     output reg  [6:0] seg,                   // segments A through G
     output reg  [3:0] an,                    // digit enables
@@ -49,6 +61,20 @@ module traffic_controller(
     // define state registers (3 bits wide for 6 states)
     reg [2:0] current_state;
     reg [2:0] next_state;
+
+    /************ EXTERNAL LED DISPLAY (JB/JC CONNECTORS) ************/
+
+    // BLUE STREET (JB connector)
+    assign blue_red_external       = blue_red;
+    assign blue_yellow_external    = blue_yellow;
+    assign blue_green_external     = blue_green;
+    assign blue_waiting_external   = blue_waiting;
+    
+    // PURPLE STREET (JC connector)
+    assign purple_red_external     = purple_red;
+    assign purple_yellow_external  = purple_yellow;
+    assign purple_green_external   = purple_green;
+    assign purple_waiting_external = purple_waiting;
 
     /********************* ELAPSED TIMER DISPLAY *********************/
 
