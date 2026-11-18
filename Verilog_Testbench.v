@@ -68,7 +68,7 @@ module verilog_controller_tb();
         .purple_red_external(),
         .purple_yellow_external(),
         .purple_green_external(),
-        .purple_waiting_external()
+        .purple_waiting_external(),
 
         // OUTPUTS: elapsed-seconds display
         .seg(tb_seg),
