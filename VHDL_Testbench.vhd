@@ -13,21 +13,21 @@ architecture Behavioral of traffic_controller_tb is
     -- 1. DECLARE TESTBENCH SIGNALS
 
     -- Inputs to the design under test
-    signal tb_clk              : STD_LOGIC := '0';
-    signal tb_reset            : STD_LOGIC := '0';
-    signal tb_blue_sensor_north : STD_LOGIC := '0';
-    signal tb_blue_sensor_south : STD_LOGIC := '0';
+    signal tb_clk                : STD_LOGIC := '0';
+    signal tb_reset              : STD_LOGIC := '0';
+    signal tb_blue_sensor_north  : STD_LOGIC := '0';
+    signal tb_blue_sensor_south  : STD_LOGIC := '0';
     signal tb_purple_sensor_east : STD_LOGIC := '0';
     signal tb_purple_sensor_west : STD_LOGIC := '0';
 
     -- Outputs from the design under test
-    signal tb_blue_green   : STD_LOGIC;
-    signal tb_blue_yellow  : STD_LOGIC;
-    signal tb_blue_red     : STD_LOGIC;
-    signal tb_purple_green : STD_LOGIC;
-    signal tb_purple_yellow : STD_LOGIC;
-    signal tb_purple_red   : STD_LOGIC;
-    signal tb_blue_waiting : STD_LOGIC;
+    signal tb_blue_green     : STD_LOGIC;
+    signal tb_blue_yellow    : STD_LOGIC;
+    signal tb_blue_red       : STD_LOGIC;
+    signal tb_purple_green   : STD_LOGIC;
+    signal tb_purple_yellow  : STD_LOGIC;
+    signal tb_purple_red     : STD_LOGIC;
+    signal tb_blue_waiting   : STD_LOGIC;
     signal tb_purple_waiting : STD_LOGIC;
 
     -- Seven-segment display outputs
@@ -51,23 +51,25 @@ begin
             clk                => tb_clk,
             reset              => tb_reset,
             
-            -- Hall sensor inputs
+            -- INPUTS: Hall sensors
             blue_sensor_north  => tb_blue_sensor_north,
             blue_sensor_south  => tb_blue_sensor_south,
             purple_sensor_east => tb_purple_sensor_east,
             purple_sensor_west => tb_purple_sensor_west,
             
-            -- LED outputs
+            -- OUTPUTS: traffic lights
             blue_green         => tb_blue_green,
             blue_yellow        => tb_blue_yellow,
             blue_red           => tb_blue_red,
             purple_green       => tb_purple_green,
             purple_yellow      => tb_purple_yellow,
             purple_red         => tb_purple_red,
+
+            -- OUTPUTS: waiting indicators
             blue_waiting       => tb_blue_waiting,
             purple_waiting     => tb_purple_waiting,
             
-            -- External breadboard LED outputs (open = not connected to a tb signal)
+            -- OUTPUTS: external breadboard LED outputs (open = not connected to a tb signal)
             blue_red_external       => open,
             blue_yellow_external    => open,
             blue_green_external     => open,
@@ -77,7 +79,7 @@ begin
             purple_green_external   => open,
             purple_waiting_external => open,
             
-            -- seven-segment display outputs
+            -- OUTPUTS: elapsed-seconds display
             seg                => tb_seg,
             an                 => tb_an,
             dp                 => tb_dp
