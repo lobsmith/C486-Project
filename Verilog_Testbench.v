@@ -60,6 +60,16 @@ module verilog_controller_tb();
         .blue_waiting(tb_blue_waiting),
         .purple_waiting(tb_purple_waiting),
 
+        // OUTPUTS: external LEDs (not connected to a tb signal)
+        .blue_red_external(),
+        .blue_yellow_external(),
+        .blue_green_external(),
+        .blue_waiting_external(),
+        .purple_red_external(),
+        .purple_yellow_external(),
+        .purple_green_external(),
+        .purple_waiting_external()
+
         // OUTPUTS: elapsed-seconds display
         .seg(tb_seg),
         .an(tb_an),
