@@ -50,10 +50,14 @@ begin
         port map (
             clk                => tb_clk,
             reset              => tb_reset,
+            
+            -- Hall sensor inputs
             blue_sensor_north  => tb_blue_sensor_north,
             blue_sensor_south  => tb_blue_sensor_south,
             purple_sensor_east => tb_purple_sensor_east,
             purple_sensor_west => tb_purple_sensor_west,
+            
+            -- LED outputs
             blue_green         => tb_blue_green,
             blue_yellow        => tb_blue_yellow,
             blue_red           => tb_blue_red,
@@ -62,6 +66,18 @@ begin
             purple_red         => tb_purple_red,
             blue_waiting       => tb_blue_waiting,
             purple_waiting     => tb_purple_waiting,
+            
+            -- External breadboard LED outputs (open = not connected to a tb signal)
+            blue_red_external       => open,
+            blue_yellow_external    => open,
+            blue_green_external     => open,
+            blue_waiting_external   => open,
+            purple_red_external     => open,
+            purple_yellow_external  => open,
+            purple_green_external   => open,
+            purple_waiting_external => open,
+            
+            -- seven-segment display outputs
             seg                => tb_seg,
             an                 => tb_an,
             dp                 => tb_dp
