@@ -11,43 +11,45 @@ use IEEE.NUMERIC_STD.ALL;                          -- import standard numeric ty
 -- port declaration: define inputs and outputs
 entity traffic_controller is
     generic (
-        CLOCK_MAX : INTEGER := 100000000           -- 100,000,000 clock cycle limit - 27 bits
+        CLOCK_MAX : INTEGER := 100000000               -- 100,000,000 clock cycle limit - 27 bits
     );
     Port (
         -- INPUTS: clock and reset signals
-        clk                 : in  STD_LOGIC;       -- FPGA clock signal
-        reset               : in  STD_LOGIC;       -- reset signal
+        clk                     : in  STD_LOGIC;       -- FPGA clock signal
+        reset                   : in  STD_LOGIC;       -- reset signal
 
         -- INPUTS: 4 Hall sensors
-        blue_sensor_north   : in  STD_LOGIC;       -- Blue Street, Northmost sensor (Southbound)
-        blue_sensor_south   : in  STD_LOGIC;       -- Blue Street, Southmost sensor (Northbound)
-        purple_sensor_east  : in  STD_LOGIC;       -- Purple Street, Eastmost sensor (Westbound)
-        purple_sensor_west  : in  STD_LOGIC;       -- Purple Street, Westmost sensor (Eastbound)
+        blue_sensor_north       : in  STD_LOGIC;       -- Blue Street, Northmost sensor (Southbound)
+        blue_sensor_south       : in  STD_LOGIC;       -- Blue Street, Southmost sensor (Northbound)
+        purple_sensor_east      : in  STD_LOGIC;       -- Purple Street, Eastmost sensor (Westbound)
+        purple_sensor_west      : in  STD_LOGIC;       -- Purple Street, Westmost sensor (Eastbound)
         
         -- OUTPUTS: 8 onboard LEDs (2 red, 2 yellow, 2 green, 2 waiting indicators)
-        blue_green          : out STD_LOGIC;       -- BLUE: green;  PURPLE: red
-        blue_yellow         : out STD_LOGIC;       -- BLUE: yellow; PURPLE: red
-        blue_red            : out STD_LOGIC;       -- BLUE: red;    PURPLE: red (before transition to PURPLE_GREEN)
-        purple_green        : out STD_LOGIC;       -- BLUE: red;    PURPLE: green
-        purple_yellow       : out STD_LOGIC;       -- BLUE: red;    PURPLE: yellow
-        purple_red          : out STD_LOGIC;       -- BLUE: red;    PURPLE: red (before transition to BLUE_GREEN)
-        blue_waiting        : out STD_LOGIC;       -- blue waiting indicator
-        purple_waiting      : out STD_LOGIC;       -- purple waiting indicator
+        blue_green              : out STD_LOGIC;       -- BLUE: green;  PURPLE: red
+        blue_yellow             : out STD_LOGIC;       -- BLUE: yellow; PURPLE: red
+        blue_red                : out STD_LOGIC;       -- BLUE: red;    PURPLE: red (before transition to PURPLE_GREEN)
+        purple_green            : out STD_LOGIC;       -- BLUE: red;    PURPLE: green
+        purple_yellow           : out STD_LOGIC;       -- BLUE: red;    PURPLE: yellow
+        purple_red              : out STD_LOGIC;       -- BLUE: red;    PURPLE: red (before transition to BLUE_GREEN)
+        blue_waiting            : out STD_LOGIC;       -- blue waiting indicator
+        purple_waiting          : out STD_LOGIC;       -- purple waiting indicator
 
-        -- OUTPUTS: 8 external breadboard LEDs (JB connector)
-        blue_red_external       : out STD_LOGIC;   -- JB(1)  - A14
-        blue_yellow_external    : out STD_LOGIC;   -- JB(2)  - A16
-        blue_green_external     : out STD_LOGIC;   -- JB(3)  - B15
-        blue_waiting_external   : out STD_LOGIC;   -- JB(4)  - B16
-        purple_red_external     : out STD_LOGIC;   -- JB(7)  - A15
-        purple_yellow_external  : out STD_LOGIC;   -- JB(8)  - A17
-        purple_green_external   : out STD_LOGIC;   -- JB(9)  - C15
-        purple_waiting_external : out STD_LOGIC;   -- JB(10) - C16
+        -- OUTPUTS: 4 external Blue breadboard LEDs (bottom row of JB connector)
+        blue_red_external       : out STD_LOGIC;       -- JB(7)  - A15
+        blue_yellow_external    : out STD_LOGIC;       -- JB(8)  - A17
+        blue_green_external     : out STD_LOGIC;       -- JB(9)  - C15
+        blue_waiting_external   : out STD_LOGIC;       -- JB(10) - C16
+        
+        -- OUTPUTS: 4 external Purple breadboard LEDs (bottom row of JC connector)
+        purple_red_external     : out STD_LOGIC;       -- JC(7)  - L17
+        purple_yellow_external  : out STD_LOGIC;       -- JC(8)  - M19
+        purple_green_external   : out STD_LOGIC;       -- JC(9)  - P17
+        purple_waiting_external : out STD_LOGIC;       -- JC(10) - R18
         
         -- OUTPUTS: four-digit seven-segment timer display
-        seg                 : out STD_LOGIC_VECTOR(6 downto 0);
-        an                  : out STD_LOGIC_VECTOR(3 downto 0);
-        dp                  : out STD_LOGIC
+        seg                     : out STD_LOGIC_VECTOR(6 downto 0);
+        an                      : out STD_LOGIC_VECTOR(3 downto 0);
+        dp                      : out STD_LOGIC
     );
 end traffic_controller;
 
@@ -100,15 +102,15 @@ architecture Behavioral of traffic_controller is
     signal blue_vehicle_detected    : STD_LOGIC;
     signal purple_vehicle_detected  : STD_LOGIC;
 
-    -------------- EXTERNAL LED DISPLAY (JB CONNECTORS) ---------------
+    ------------- EXTERNAL LED DISPLAY (JB/JC CONNECTORS) -------------
 
-    -- BLUE STREET
+    -- BLUE STREET (JB connector)
     blue_red_external     <= blue_red;
     blue_yellow_external  <= blue_yellow;
     blue_green_external   <= blue_green;
     blue_waiting_external <= blue_waiting;
     
-    -- PURPLE STREET
+    -- PURPLE STREET (JC connector)
     purple_red_external     <= purple_red;
     purple_yellow_external  <= purple_yellow;
     purple_green_external   <= purple_green;
